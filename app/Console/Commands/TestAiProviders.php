@@ -27,8 +27,8 @@ class TestAiProviders extends Command
      */
     public function handle(EmbeddingProvider $embedder, ChatProvider $chat)
     {
-        $this->info('Embedding driver: '.config('ai.embedding.driver'));
-        $this->info('Chat driver: '.config('ai.chat.driver'));
+        $this->info('Embedding provider: ' . config('ai.embedding_provider'));
+        $this->info('Chat provider: ' . config('ai.chat_provider'));
 
         $this->line('--- Testing embedding ---');
         $vector = $embedder->embed('How do I close a support ticket?');
