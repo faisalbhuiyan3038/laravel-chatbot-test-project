@@ -7,6 +7,7 @@ use Illuminate\Console\Command;
 use App\Services\AI\Contracts\EmbeddingProvider;
 use App\Services\Faq\VectorCodec;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class EmbedFaqs extends Command
 {
@@ -68,6 +69,7 @@ class EmbedFaqs extends Command
 
             $bar->advance();
         }
+        Cache::forget("faq_embeddings:{$currentModel}");
 
         $bar->finish();
         $this->newLine();
