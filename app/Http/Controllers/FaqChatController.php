@@ -20,6 +20,14 @@ class FaqChatController extends Controller
             'question' => ['required', 'string', 'max:1000'],
         ]);
 
+        $question = trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $validated['question']));
+
+        if ($question === '') {
+            // catches whitespace-only / control-character-only submissions that
+            // pass Laravel's basic 'required|string' check but are still junk
+            abort(422, 'Please enter a question.');
+        }
+        
         return response()->stream(function () use ($validated, $answerer) {
             $requestStart = microtime(true);
 

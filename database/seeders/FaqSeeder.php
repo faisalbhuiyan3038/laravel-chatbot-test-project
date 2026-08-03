@@ -25,10 +25,12 @@ class FaqSeeder extends Seeder
 
         foreach($faqs as $faq){
             DB::table('faqs')->insert([
-                'question' => trim($faq['question']),
-                'answer' => trim($faq['answer']),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'question'    => trim($faq['question']),
+                'answer'      => trim($faq['answer']),
+                'question_bn' => isset($faq['question_bn']) ? trim($faq['question_bn']) : null,
+                'answer_bn'   => isset($faq['answer_bn']) ? trim($faq['answer_bn']) : null,
+                'created_at'  => now(),
+                'updated_at'  => now(),
             ]);
         }
 
