@@ -1,162 +1,50 @@
 [
   {
-    "question": "How do I create a new ticket?",
-    "answer": "Click New Ticket, choose the customer, enter a subject and description, set priority, and submit. The ticket is created as Open and unassigned unless you assign it immediately."
+    "question": "What is the application procedure for job circulars?",
+    "answer": "To apply for a job position, follow these steps: 1. Visit the official portal at https://recruitment.bdansarerp.gov.bd/application-circulars. 2. Locate the 'Job Notices' section and click on the desired job circular. 3. Click the 'Apply' button next to the selected position. 4. Carefully read the instructions on the page and select the checkbox to unlock the application form. 5. Enter the required details, including District, Applicant Mobile Number, and NID Number, then click 'Pay with SSLCommerz'. 6. Select a preferred payment method (e.g., bKash, Rocket, or Bank) and complete the fee payment. 7. Upon successful payment, wait for an SMS containing the login credentials (Applicant ID and Password). 8. Click the 'Login' button and log in using the provided credentials. 9. After logging in, the applicant can view and print the Admit Card."
   },
   {
-    "question": "Can I close a ticket without sending a reply?",
-    "answer": "Yes, if the ticket does not need a customer response. Add an internal note explaining why it is being closed, then use Actions > Close."
+    "question": "Will documents attested one year ago be accepted for the application?",
+    "answer": "For queries regarding the validity of older attested documents, applicants must contact support for assistance."
   },
   {
-    "question": "reopen closed ticket",
-    "answer": "Open the ticket and use Actions > Reopen within 14 days of closure. After 14 days, create a new ticket and link it to the old one instead."
+    "question": "How can an applicant correct incorrect information such as Date of Birth, Upazila, NID, or Mobile Number?",
+    "answer": "If there is an error in information such as Date of Birth, Upazila, NID number, or Mobile Number, the applicant should contact support and submit the relevant documents for correction."
   },
   {
-    "question": "can agents reopen their own closed tickets?",
-    "answer": "Yes, agents can reopen tickets they closed within 14 days. Team Leads and Admins can reopen any closed ticket within that window."
+    "question": "Is it possible to cancel an application and get a refund?",
+    "answer": "No, applications cannot be canceled once submitted. Application fees are non-refundable after payment has been completed."
   },
   {
-    "question": "merging duplicate tickets in AV-CRM",
-    "answer": "Only Team Leads and Admins can merge tickets. Open the ticket that should remain, choose Actions > Merge, and enter the duplicate ticket ID; the duplicate is closed and its history is attached to the surviving ticket."
+    "question": "How does an applicant receive their login Applicant ID and Password after applying?",
+    "answer": "Once the application fee payment is completed, the applicant will receive an SMS containing their Applicant ID and Password on the provided mobile number. The applicant can then log in at https://recruitment.bdansarerp.gov.bd/application-circulars using those credentials."
   },
   {
-    "question": "I made a ticket by mistake. Can I delete it?",
-    "answer": "Agents cannot delete tickets. Close it as invalid or duplicate and add an internal note; Admins can delete tickets if required."
+    "question": "What should an applicant do if the login attempt displays an 'Invalid' error?",
+    "answer": "If an invalid login error appears, please wait for up to 1 minute for the system to recognize the credentials. If the error persists, refresh the web browser page and attempt to log in again."
   },
   {
-    "question": "What does Pending Customer status mean?",
-    "answer": "Pending Customer means you are waiting for the customer to respond. The SLA timer pauses in this status, and the ticket auto-closes after 5 business days with no reply."
+    "question": "What should an applicant do if payment is completed but no Applicant ID and Password are received?",
+    "answer": "Applicants should wait at least 3 hours after payment completion to receive the confirmation SMS. If the message is still not received after 3 hours, contact support for assistance."
   },
   {
-    "question": "difference between Open and In Progress",
-    "answer": "Open means the ticket exists but no active work has started. In Progress means an assigned agent is actively working on it."
+    "question": "What should an applicant do if the application form is submitted but no confirmation message is received?",
+    "answer": "Applicants should wait at least 3 hours for the system to process the submission. If no confirmation SMS is received after 3 hours, please contact support."
   },
   {
-    "question": "When should a ticket be set to Escalated?",
-    "answer": "Use Escalated when a ticket needs urgent attention, higher technical review, or management visibility. Set it from Actions > Escalate; Team Leads are notified and the SLA keeps running."
+    "question": "What is the payment procedure for the application fee?",
+    "answer": "To pay the application fee: 1. Fill out the application details including District, Applicant Mobile Number, and NID Number. 2. Click the 'Pay with SSLCommerz' button. 3. Select a preferred payment method (such as bKash, Rocket, or supported bank channels) and complete the payment transaction. 4. Wait for the confirmation SMS containing the Applicant ID and Password."
   },
   {
-    "question": "what triggers Reopened status?",
-    "answer": "A ticket becomes Reopened when an agent manually reopens it or when a customer replies within 14 days after closure. If possible, it is assigned back to the previous owner."
+    "question": "Can an applicant apply using a Birth Certificate number instead of an NID card?",
+    "answer": "No, a valid National ID (NID) number is required to apply. Applications cannot be submitted using a Birth Certificate number."
   },
   {
-    "question": "why did my ticket automatically change to Closed?",
-    "answer": "Tickets in Pending Customer auto-close after 5 business days without a customer response. They can be reopened within 14 days if the customer comes back."
+    "question": "What are the eligibility requirements for the job application?",
+    "answer": "Eligibility requirements vary depending on the specific job circular. Applicants should review the specific educational, physical, and age criteria listed in the detailed job notice at https://recruitment.bdansarerp.gov.bd/application-circulars before applying."
   },
   {
-    "question": "Can I mark a ticket In Progress without assigning it?",
-    "answer": "No. A ticket must have an owner before it can be set to In Progress. Claim the ticket or assign it first."
-  },
-  {
-    "question": "what can team leads do that agents cannot?",
-    "answer": "Team Leads can reassign tickets across agents or teams, merge duplicates, escalate tickets, and view team-level reports. Agents can work tickets, reply, add notes, and update statuses for tickets they can access."
-  },
-  {
-    "question": "can agents change ticket priority?",
-    "answer": "Yes, agents can set or change priority. The change is logged, and SLA targets are recalculated based on the new priority."
-  },
-  {
-    "question": "who can delete tickets?",
-    "answer": "Only Admins can delete tickets. Agents and Team Leads should close invalid tickets and add an internal note explaining why."
-  },
-  {
-    "question": "can admins see internal notes?",
-    "answer": "Yes. Anyone with access to the ticket can read internal notes, including Admins. Admins can also redact notes when privacy or policy requires it."
-  },
-  {
-    "question": "who can view all tickets?",
-    "answer": "Agents can view tickets assigned to them and tickets in queues they have access to. Team Leads can view their team's tickets and shared queues, while Admins can view all tickets."
-  },
-  {
-    "question": "how do SLA timers work?",
-    "answer": "SLA timers start when the ticket is created and are based on priority. There are separate first-response and resolution targets, and the timer pauses only when the ticket is Pending Customer."
-  },
-  {
-    "question": "does SLA pause when waiting on customer?",
-    "answer": "Yes. The SLA pauses when the ticket is set to Pending Customer. It resumes when the customer replies or an agent changes the status back to In Progress."
-  },
-  {
-    "question": "what happens when an SLA breaches?",
-    "answer": "The ticket is flagged as breached, Team Leads are notified, and the breach appears in reporting. The ticket remains open, and the assigned agent should update the customer or escalate if needed."
-  },
-  {
-    "question": "what happens to SLA time after a ticket is reopened?",
-    "answer": "The SLA resumes with the remaining time from before closure. If the ticket was already breached, it stays breached and Team Leads remain alerted."
-  },
-  {
-    "question": "can I manually reset an SLA timer?",
-    "answer": "No. Agents and Team Leads cannot reset SLA timers. Only Admins can adjust SLA policies or apply exceptions."
-  },
-  {
-    "question": "How are new tickets assigned?",
-    "answer": "New tickets are usually created as Open and unassigned in the relevant queue. Agents can claim them, or Team Leads can assign them manually."
-  },
-  {
-    "question": "reassign ticket team lead",
-    "answer": "Open the ticket, choose Actions > Reassign, and select the new agent or team. Only Team Leads and Admins can reassign a ticket to a different owner."
-  },
-  {
-    "question": "can I transfer a ticket to another team?",
-    "answer": "Yes, but only Team Leads and Admins can transfer tickets between teams. Use Reassign and select the destination team; the transfer is recorded in the ticket history."
-  },
-  {
-    "question": "does AV-CRM use round-robin assignment?",
-    "answer": "Only if auto-assignment is enabled for that queue. Otherwise, tickets stay unassigned until an agent claims them or a Team Lead assigns them."
-  },
-  {
-    "question": "what happens to unassigned tickets?",
-    "answer": "They remain Open in the queue and their SLA timers keep running. Agents can claim them, and Team Leads should review them to avoid breaches."
-  },
-  {
-    "question": "internal note vs customer reply",
-    "answer": "Internal notes are visible only to support staff. Customer replies are sent to the customer and appear in the ticket conversation."
-  },
-  {
-    "question": "can customers see attachments?",
-    "answer": "Customers can see attachments added to a customer-visible reply. Attachments added to internal notes are not visible to customers."
-  },
-  {
-    "question": "where is ticket history?",
-    "answer": "Open the ticket and use the History or Audit Log panel. It shows status changes, assignments, merges, replies, and note edit activity."
-  },
-  {
-    "question": "can I edit or delete an internal note?",
-    "answer": "Agents can edit their own internal notes for 30 minutes after saving. Notes cannot be deleted by agents; Admins can redact them if necessary."
-  },
-  {
-    "question": "attachment file limits",
-    "answer": "Attachments are limited to 25 MB per file. Use compressed logs or shared links for larger files."
-  },
-  {
-    "question": "find tickets by customer email",
-    "answer": "Enter the customer email or name in the search bar. You can also open the customer record and view their tickets from there."
-  },
-  {
-    "question": "filter open tickets assigned to me",
-    "answer": "Use the My Tickets view or set filters for Assigned Agent = Me and Status = Open. You can save the view if you use it often."
-  },
-  {
-    "question": "ticket created date range search",
-    "answer": "Use Advanced Search and set the Created Date from and to values. You can combine this with status, team, priority, or assigned agent filters."
-  },
-  {
-    "question": "can search find attachment filenames?",
-    "answer": "Search indexes ticket text, replies, and internal note bodies, but not attachment contents. If you need a file, search by ticket ID, customer, or the note where it was added."
-  },
-  {
-    "question": "when do customers get notifications?",
-    "answer": "Customers are notified when a ticket is created, when they receive a public reply, and when the ticket is closed or reopened. They do not receive internal notes."
-  },
-  {
-    "question": "what notifications do agents receive?",
-    "answer": "Agents are notified when they are assigned a ticket, mentioned in a note, receive a customer reply, or when a ticket they own is reopened. They also get SLA warning and breach notifications for tickets they are responsible for."
-  },
-  {
-    "question": "can I stop getting notifications?",
-    "answer": "You can adjust personal notification settings for watched tickets, but mandatory notifications such as assignment and SLA breaches may still be sent. Admins control the global notification rules."
-  },
-  {
-    "question": "does mentioning someone notify them?",
-    "answer": "Yes. Mentioning an agent in an internal note sends them a notification. Mentions in customer-visible replies do not notify customers."
+    "question": "What should an applicant do if incorrect NID information was entered during application?",
+    "answer": "If incorrect NID information was entered during submission, the applicant must contact support and provide the relevant identifying details to request assistance."
   }
 ]

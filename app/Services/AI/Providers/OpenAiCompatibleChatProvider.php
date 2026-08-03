@@ -24,6 +24,8 @@ class OpenAiCompatibleChatProvider implements ChatProvider
                     ['role' => 'system', 'content' => $systemPrompt],
                     ['role' => 'user', 'content' => $userPrompt],
                 ],
+                'temperature' => 0.2,
+                'top_p' => 0.8,
             ]);
 
         if ($response->failed()) {
@@ -39,12 +41,14 @@ class OpenAiCompatibleChatProvider implements ChatProvider
             ->withOptions(['stream' => true]) // tells Guzzle not to buffer the whole body
             ->timeout(120)
             ->post(rtrim($this->baseUrl, '/') . '/chat/completions', [
-                'model' => $this->model,
-                'stream' => true,
-                'messages' => [
+                'model'       => $this->model,
+                'stream'      => true,
+                'messages'    => [
                     ['role' => 'system', 'content' => $systemPrompt],
                     ['role' => 'user', 'content' => $userPrompt],
                 ],
+                'temperature' => 0.2,
+                'top_p'       => 0.8,
             ]);
     
         if ($response->failed()) {
