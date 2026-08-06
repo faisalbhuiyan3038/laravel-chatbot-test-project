@@ -31,5 +31,15 @@ class AiServiceProvider extends ServiceProvider
                 model: $cfg['chat_model'],
             );
         });
+
+        $this->app->bind('ai.translator', function(){
+            $cfg = config('ai.providers.'. config('ai.translation_provider'));
+
+            return new OpenAiCompatibleChatProvider(
+                baseUrl: $cfg['base_url'],
+                apiKey: $cfg['api_key'],
+                model: $cfg['translation_model'],
+            );
+        });
     }
 }

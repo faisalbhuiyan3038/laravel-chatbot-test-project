@@ -4,20 +4,28 @@ namespace App\Services\Faq;
 
 use App\Services\AI\Contracts\EmbeddingProvider;
 use App\Services\Faq\LanguageDetector;
+use App\Services\Faq\BanglishNormalizer;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Services\Faq\VectorCodec;
 
 class FaqRetriever
 {
+    private readonly BanglishNormalizer $banglishNormalizer;
+
     public function __construct(
         private readonly EmbeddingProvider $embedder,
         private readonly LanguageDetector $languageDetector,
         private readonly float $fallbackThreshold = 0.5,
-        ){}
+        ?BanglishNormalizer $banglishNormalizer = null,
+    ) {
+        $this->banglishNormalizer = $banglishNormalizer ?? app(BanglishNormalizer::class);
+    }
 
     /**
-     * Summary of search
+     * Search FAQ database using multi-lingual vector similarity.
+     * Supports English, Bangla, and Banglish (phonetic transliteration).
+     *
      * @param string $question
      * @param int $topK
      * @return array<int, array{id:int, question:string, answer:string, score:float}>
@@ -27,20 +35,45 @@ class FaqRetriever
         $currentModel = config('ai.providers.' . config('ai.embedding_provider') . '.embedding_model');
         $lang = $this->languageDetector->detect($question);
 
+        // --- Banglish Handling: Dual Multi-Vector Search ---
+        if ($lang === 'banglish') {
+            $transliterated = $this->banglishNormalizer->transliterate($question);
+
+            // 1. Vector search transliterated Bangla text against Bangla FAQs
+            $bnVector = $this->embedder->embed($transliterated);
+            $bnNorm   = VectorCodec::norm($bnVector);
+            $bnMatches = $this->scoreAgainst('bn', $currentModel, $bnVector, $bnNorm);
+
+            // 2. Vector search original Latin query against English FAQs
+            $enVector = $this->embedder->embed($question);
+            $enNorm   = VectorCodec::norm($enVector);
+            $enMatches = $this->scoreAgainst('en', $currentModel, $enVector, $enNorm);
+
+            // Merge & deduplicate keeping highest score per FAQ ID
+            $merged = [];
+            foreach (array_merge($bnMatches, $enMatches) as $match) {
+                $id = $match['id'];
+                if (!isset($merged[$id]) || $match['score'] > $merged[$id]['score']) {
+                    $merged[$id] = $match;
+                }
+            }
+
+            return $this->rank(array_values($merged), $topK);
+        }
+
+        // --- Standard Bangla or English Search ---
         $queryVector = $this->embedder->embed($question);
         $queryNorm   = VectorCodec::norm($queryVector);
 
         $primary = $this->rank($this->scoreAgainst($lang, $currentModel, $queryVector, $queryNorm), $topK);
 
-        // Only Bangla queries fall back — English has nowhere else to fall back to.
+        // Fallback cross-lingual check for weak Bangla matches
         $primaryIsWeak = empty($primary) || $primary[0]['score'] < $this->fallbackThreshold;
 
         if ($lang === 'bn' && $primaryIsWeak) {
             $fallback = $this->rank($this->scoreAgainst('en', $currentModel, $queryVector, $queryNorm), $topK);
 
-            // Cross-lingual match is a safety net, not a preference — only
-            // use it if it's actually stronger than what same-language search found.
-            if (! empty($fallback) && (empty($primary) || $fallback[0]['score'] > $primary[0]['score'])) {
+            if (!empty($fallback) && (empty($primary) || $fallback[0]['score'] > $primary[0]['score'])) {
                 return $fallback;
             }
         }
