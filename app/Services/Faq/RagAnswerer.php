@@ -55,31 +55,38 @@ class RagAnswerer
     }
 
     
-    public function answerStream(string $question, callable $onToken): array
+    public function answerStream(string $question, callable $onToken, array $history = []): array
     {
         $retrievalStart = microtime(true);
         $matches = $this->retriever->search($question, topK: 4);
         $retrievalMs = round((microtime(true) - $retrievalStart) * 1000, 1);
     
-        // if (empty($matches) || $matches[0]['score'] < $this->similarityThreshold) {
-        //     $onToken(self::NO_ANSWER);
-        //     return [
-        //         'grounded'      => false,
-        //         'sources'       => [],
-        //         'top_score'     => $matches[0]['score'] ?? null,
-        //         'retrieval_ms'  => $retrievalMs,
-        //         'generation_ms' => 0,
-        //     ];
-        // }
-    
         $relevant = array_filter($matches, fn ($m) => $m['score'] >= $this->similarityThreshold);
     
-        $generationStart = microtime(true);
-        $this->chat->completeStream(
-            $this->buildSystemPrompt(),
-            $this->buildUserPrompt($question, $relevant),
-            $onToken
+        // Truncate history based on configurable cutoff (default 10 messages)
+        $maxHistory = (int) config('ai.max_context_messages', 10);
+        if (count($history) > $maxHistory) {
+            $history = array_slice($history, -$maxHistory);
+        }
+
+        $formattedHistory = [];
+        foreach ($history as $msg) {
+            if (isset($msg['role'], $msg['content']) && in_array($msg['role'], ['user', 'assistant'])) {
+                $formattedHistory[] = [
+                    'role'    => $msg['role'],
+                    'content' => (string) $msg['content'],
+                ];
+            }
+        }
+
+        $messages = array_merge(
+            [['role' => 'system', 'content' => $this->buildSystemPrompt()]],
+            $formattedHistory,
+            [['role' => 'user', 'content' => $this->buildUserPrompt($question, $relevant)]]
         );
+
+        $generationStart = microtime(true);
+        $this->chat->completeMessagesStream($messages, $onToken);
         $generationMs = round((microtime(true) - $generationStart) * 1000, 1);
     
         return [
@@ -88,8 +95,8 @@ class RagAnswerer
                 'id'       => $m['id'],
                 'question' => $m['question'],
                 'score'    => round($m['score'], 4),
-            ], $relevant),
-            'top_score'     => $matches[0]['score'],
+            ], array_values($relevant)),
+            'top_score'     => $matches[0]['score'] ?? null,
             'retrieval_ms'  => $retrievalMs,
             'generation_ms' => $generationMs,
         ];

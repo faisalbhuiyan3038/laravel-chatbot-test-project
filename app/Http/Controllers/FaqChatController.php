@@ -17,7 +17,10 @@ class FaqChatController extends Controller
     public function ask(Request $request, RagAnswerer $answerer): StreamedResponse
     {
         $validated = $request->validate([
-            'question' => ['required', 'string', 'max:1000'],
+            'question'         => ['required', 'string', 'max:1000'],
+            'history'          => ['nullable', 'array'],
+            'history.*.role'   => ['required', 'string', 'in:user,assistant'],
+            'history.*.content' => ['required', 'string', 'max:4000'],
         ]);
 
         $question = trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $validated['question']));
@@ -28,14 +31,16 @@ class FaqChatController extends Controller
             abort(422, 'Please enter a question.');
         }
         
-        return response()->stream(function () use ($validated, $answerer) {
+        $history = $validated['history'] ?? [];
+
+        return response()->stream(function () use ($question, $history, $answerer) {
             $requestStart = microtime(true);
 
-            $result = $answerer->answerStream($validated['question'], function (string $token) {
+            $result = $answerer->answerStream($question, function (string $token) {
                 echo 'data: ' . json_encode(['token' => $token]) . "\n\n";
                 if (ob_get_level() > 0) { ob_flush(); }
                 flush();
-            });
+            }, $history);
 
             $totalMs = round((microtime(true) - $requestStart) * 1000, 1);
 

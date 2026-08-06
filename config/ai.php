@@ -3,6 +3,7 @@
 return [
     'embedding_provider' => env('AI_EMBEDDING_PROVIDER', 'ollama'),
     'chat_provider' => env('AI_CHAT_PROVIDER', 'ollama'),
+    'max_context_messages' => env('AI_MAX_CONTEXT_MESSAGES', 10),
 
     'providers' => [
         'ollama' => [

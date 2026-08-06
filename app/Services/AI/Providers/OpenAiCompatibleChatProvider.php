@@ -37,46 +37,53 @@ class OpenAiCompatibleChatProvider implements ChatProvider
 
     public function completeStream(string $systemPrompt, string $userPrompt, callable $onToken): void
     {
+        $messages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'user', 'content' => $userPrompt],
+        ];
+
+        $this->completeMessagesStream($messages, $onToken);
+    }
+
+    public function completeMessagesStream(array $messages, callable $onToken): void
+    {
         $response = Http::withToken($this->apiKey)
             ->withOptions(['stream' => true]) // tells Guzzle not to buffer the whole body
             ->timeout(120)
             ->post(rtrim($this->baseUrl, '/') . '/chat/completions', [
                 'model'       => $this->model,
                 'stream'      => true,
-                'messages'    => [
-                    ['role' => 'system', 'content' => $systemPrompt],
-                    ['role' => 'user', 'content' => $userPrompt],
-                ],
+                'messages'    => $messages,
                 'temperature' => 0.2,
                 'top_p'       => 0.8,
             ]);
-    
+
         if ($response->failed()) {
             throw new RuntimeException("Chat stream request failed ({$this->baseUrl}): " . $response->body());
         }
-    
+
         $body = $response->toPsrResponse()->getBody();
         $buffer = '';
-    
+
         while (! $body->eof()) {
             $buffer .= $body->read(1024);
-    
+
             // SSE messages are separated by a blank line
             while (($pos = strpos($buffer, "\n\n")) !== false) {
                 $frame = substr($buffer, 0, $pos);
                 $buffer = substr($buffer, $pos + 2);
-    
+
                 foreach (explode("\n", $frame) as $line) {
                     $line = trim($line);
                     if (! str_starts_with($line, 'data:')) {
                         continue;
                     }
-    
+
                     $data = trim(substr($line, 5));
                     if ($data === '[DONE]') {
                         return;
                     }
-    
+
                     $token = json_decode($data, true)['choices'][0]['delta']['content'] ?? null;
                     if ($token !== null && $token !== '') {
                         $onToken($token);
