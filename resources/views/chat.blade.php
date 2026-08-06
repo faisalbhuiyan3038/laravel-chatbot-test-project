@@ -627,6 +627,115 @@
             background: #e4e6eb;
         }
 
+        /* Pinned Announcement Message Styling */
+        .pinned-header {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--wa-teal-dark);
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed rgba(18, 140, 126, 0.2);
+        }
+
+        .msg-bubble.pinned-bubble {
+            background: #ffffff;
+            border-left: 4px solid var(--wa-teal);
+            box-shadow: 0 1px 3px rgba(11, 20, 26, 0.15);
+            max-width: 100%;
+        }
+
+        .suggestion-chips-wrapper {
+            margin-top: 14px;
+            margin-bottom: 10px;
+        }
+
+        .suggestion-title {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--wa-text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Feedback Buttons & Note Input */
+        .feedback-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .feedback-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--wa-text-muted);
+            padding: 3px 7px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .feedback-btn:hover {
+            background: rgba(0,0,0,0.05);
+            color: var(--wa-text-primary);
+        }
+
+        .feedback-btn.like-btn.active {
+            color: #16a34a;
+            background: #dcfce7;
+            border-color: #86efac;
+        }
+
+        .feedback-btn.dislike-btn.active {
+            color: #dc2626;
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+
+        .feedback-note-input {
+            display: none;
+            margin-top: 6px;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .feedback-note-input.open {
+            display: flex;
+        }
+
+        .feedback-note-text {
+            flex: 1;
+            font-size: 11.5px;
+            padding: 5px 9px;
+            border: 1px solid var(--wa-border);
+            border-radius: 6px;
+            outline: none;
+            color: var(--wa-text-primary);
+            background: #ffffff;
+        }
+
+        .feedback-note-send {
+            background: var(--wa-teal-dark);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         /* Footer Input Bar */
         footer {
             height: 62px;
@@ -757,6 +866,9 @@
                     </div>
                 </div>
                 <div class="header-actions">
+                    <a href="{{ route('admin.feedbacks') }}" class="icon-btn" title="View Feedback Dashboard" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    </a>
                     <button class="icon-btn" id="delete-current-btn" title="Delete this Chat">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
@@ -782,6 +894,7 @@
 
     <script>
         const CHAT_ASK_URL = @json(route('chat.ask'));
+        const CHAT_FEEDBACK_URL = @json(route('chat.feedback'));
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
         const THINKING_PHRASES = [
@@ -887,6 +1000,15 @@
                     const store = tx.objectStore('messages');
                     const req = store.add(msg);
                     req.onsuccess = () => resolve(req.result);
+                });
+            }
+
+            async updateMessage(msg) {
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction('messages', 'readwrite');
+                    const store = tx.objectStore('messages');
+                    store.put(msg);
+                    tx.oncomplete = () => resolve();
                 });
             }
         }
@@ -1080,38 +1202,89 @@
             messagesInner.innerHTML = '';
             if (!currentConversationId) return;
 
-            const msgs = await store.getMessages(currentConversationId);
-
-            if (msgs.length === 0) {
-                renderEmptyState();
-                return;
-            }
-
             // Date Badge
             const dateBadge = document.createElement('div');
             dateBadge.className = 'date-badge';
             dateBadge.textContent = 'TODAY';
             messagesInner.appendChild(dateBadge);
 
-            msgs.forEach(m => {
-                appendMessageRow(m.role, m.content, m.timestamp, m.timing, m.sources, m.grounded);
+            // Always render pinned welcome row from AI assistant
+            appendPinnedWelcomeRow();
+
+            const msgs = await store.getMessages(currentConversationId);
+
+            if (msgs.length === 0) {
+                renderSuggestionChips();
+                return;
+            }
+
+            msgs.forEach((m, idx) => {
+                let userQuestion = '';
+                if (m.role === 'assistant' && idx > 0 && msgs[idx - 1].role === 'user') {
+                    userQuestion = msgs[idx - 1].content;
+                }
+                appendMessageRow(m.role, m.content, m.timestamp, m.timing, m.sources, m.grounded, m.rating, m.feedback_text, m, userQuestion);
             });
 
             scrollToBottom();
         }
 
-        function renderEmptyState() {
-            messagesInner.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-title">AV-CRM Assistant</div>
-                    <div class="empty-desc">Ask support queries in English, Bengali, or Banglish. Messages are stored locally in your browser.</div>
-                    <div class="suggestion-chips">
-                        <div class="chip" onclick="fillInput('How to log a new ticket in AV-CRM?')">How to log a new ticket in AV-CRM?</div>
-                        <div class="chip" onclick="fillInput('Amar bill missing notification solution ki?')">Amar bill missing notification solution ki?</div>
-                        <div class="chip" onclick="fillInput('কোন ক্যাটাগরিতে কল রেজিস্টার করতে হবে?')">কোন ক্যাটাগরিতে কল রেজিস্টার করতে হবে?</div>
-                    </div>
+        function appendPinnedWelcomeRow() {
+            const row = document.createElement('div');
+            row.className = 'msg-row assistant pinned-row';
+
+            const container = document.createElement('div');
+            container.className = 'msg-container';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble pinned-bubble';
+
+            const meta = document.createElement('span');
+            meta.className = 'msg-meta';
+            meta.innerHTML = `<span class="msg-time">System</span>`;
+            bubble.appendChild(meta);
+
+            const header = document.createElement('div');
+            header.className = 'pinned-header';
+            header.innerHTML = `
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4H17V2H7V4H8V12L6 14V16H11.5V22H12.5V16H18V14L16 12Z"/></svg>
+                <span>PINNED ANNOUNCEMENT</span>
+            `;
+            bubble.appendChild(header);
+
+            const contentText = document.createElement('div');
+            contentText.className = 'bubble-text';
+            contentText.innerHTML = `Hello! 👋 I am the <strong>AV-CRM AI Chatbot</strong>. I can help you resolve common issues quickly.<br><br>📌 <em>Note:</em> At the moment, I can only answer questions related to <strong>Ansar Recruitment</strong>, but I'm continuously learning and will be able to answer questions on other projects soon.`;
+            bubble.appendChild(contentText);
+
+            const clear = document.createElement('div');
+            clear.style.clear = 'both';
+            bubble.appendChild(clear);
+
+            container.appendChild(bubble);
+            row.appendChild(container);
+            messagesInner.appendChild(row);
+        }
+
+        function renderSuggestionChips() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'suggestion-chips-wrapper';
+            wrapper.innerHTML = `
+                <div class="suggestion-title">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    Suggested Questions
+                </div>
+                <div class="suggestion-chips">
+                    <div class="chip" onclick="fillInput('How to log a new ticket in AV-CRM?')">How to log a new ticket in AV-CRM?</div>
+                    <div class="chip" onclick="fillInput('Amar bill missing notification solution ki?')">Amar bill missing notification solution ki?</div>
+                    <div class="chip" onclick="fillInput('কোন ক্যাটাগরিতে কল রেজিস্টার করতে হবে?')">কোন ক্যাটাগরিতে কল রেজিস্টার করতে হবে?</div>
                 </div>
             `;
+            messagesInner.appendChild(wrapper);
+        }
+
+        function renderEmptyState() {
+            renderSuggestionChips();
         }
 
         window.fillInput = function(text) {
@@ -1137,11 +1310,7 @@
         }
 
         // Message Row Generator
-        // User messages → right-aligned green bubble
-        // Assistant messages → left-aligned white bubble
-        // Details toggle + panel live OUTSIDE the bubble in the container, so expanding them
-        // doesn't create internal whitespace inside the bubble itself.
-        function appendMessageRow(role, text, timestamp = null, timing = null, sources = [], grounded = false) {
+        function appendMessageRow(role, text, timestamp = null, timing = null, sources = [], grounded = false, rating = null, feedbackText = null, msgObj = null, questionContext = '') {
             const row = document.createElement('div');
             row.className = `msg-row ${role}`;
 
@@ -1153,7 +1322,6 @@
             bubble.className = 'msg-bubble';
 
             // WhatsApp float-right meta trick:
-            // Render the time + ticks FIRST in the DOM (float:right) so text wraps around it.
             const meta = document.createElement('span');
             meta.className = 'msg-meta';
 
@@ -1169,7 +1337,6 @@
                 meta.appendChild(ticks);
             }
 
-            // Meta goes in FIRST so float:right works correctly
             bubble.appendChild(meta);
 
             const contentText = document.createElement('span');
@@ -1177,50 +1344,151 @@
             contentText.innerHTML = parseMarkdown(text);
             bubble.appendChild(contentText);
 
-            // Clearfix to contain the float
             const clearfix = document.createElement('div');
             clearfix.style.clear = 'both';
             bubble.appendChild(clearfix);
 
             container.appendChild(bubble);
 
-            // --- Details toggle + panel go OUTSIDE the bubble in the container ---
-            if (role === 'assistant' && (timing || (sources && sources.length > 0))) {
-                const detailsToggle = document.createElement('button');
-                detailsToggle.className = 'details-toggle';
-                detailsToggle.innerHTML = '▾ Details';
+            // --- Details toggle + panel & Like/Dislike Actions for Assistant ---
+            if (role === 'assistant' && text !== 'Hello! 👋 I am the AV-CRM AI Chatbot...') {
+                const flexBar = document.createElement('div');
+                flexBar.style.display = 'flex';
+                flexBar.style.alignItems = 'center';
+                flexBar.style.justifyContent = 'space-between';
+                flexBar.style.marginTop = '2px';
 
-                const detailsPanel = document.createElement('div');
-                detailsPanel.className = 'details-panel';
+                let detailsToggle = null;
+                let detailsPanel = null;
 
-                let timingHtml = '';
-                if (timing) {
-                    timingHtml = `<div class="timing">
-                        <span>⏱ <strong>${formatDuration(timing.total_ms || 0)}</strong> total</span>
-                        <span>🔍 <strong>${formatDuration(timing.retrieval_ms || 0)}</strong> retrieval</span>
-                        <span>🧠 <strong>${formatDuration(timing.generation_ms || 0)}</strong> generation</span>
-                    </div>`;
+                if (timing || (sources && sources.length > 0)) {
+                    detailsToggle = document.createElement('button');
+                    detailsToggle.className = 'details-toggle';
+                    detailsToggle.innerHTML = '▾ Details';
+
+                    detailsPanel = document.createElement('div');
+                    detailsPanel.className = 'details-panel';
+
+                    let timingHtml = '';
+                    if (timing) {
+                        timingHtml = `<div class="timing">
+                            <span>⏱ <strong>${formatDuration(timing.total_ms || 0)}</strong> total</span>
+                            <span>🔍 <strong>${formatDuration(timing.retrieval_ms || 0)}</strong> retrieval</span>
+                            <span>🧠 <strong>${formatDuration(timing.generation_ms || 0)}</strong> generation</span>
+                        </div>`;
+                    }
+
+                    let sourcesHtml = grounded && sources && sources.length
+                        ? sources.map(s => `<div class="source"><span class="score-badge">${s.score}</span>FAQ #${s.id} — ${escapeHtml(s.question)}</div>`).join('')
+                        : '<div class="source">No direct FAQ match (below similarity threshold).</div>';
+
+                    detailsPanel.innerHTML = timingHtml + sourcesHtml;
+
+                    detailsToggle.addEventListener('click', () => {
+                        detailsPanel.classList.toggle('open');
+                        detailsToggle.innerHTML = detailsPanel.classList.contains('open') ? '▴ Hide details' : '▾ Details';
+                    });
+
+                    flexBar.appendChild(detailsToggle);
+                } else {
+                    flexBar.appendChild(document.createElement('div'));
                 }
 
-                let sourcesHtml = grounded && sources && sources.length
-                    ? sources.map(s => `<div class="source"><span class="score-badge">${s.score}</span>FAQ #${s.id} — ${escapeHtml(s.question)}</div>`).join('')
-                    : '<div class="source">No direct FAQ match (below similarity threshold).</div>';
+                // Like / Dislike Buttons
+                const feedbackBar = document.createElement('div');
+                feedbackBar.className = 'feedback-actions';
 
-                detailsPanel.innerHTML = timingHtml + sourcesHtml;
+                const likeBtn = document.createElement('button');
+                likeBtn.className = `feedback-btn like-btn ${rating === 'like' ? 'active' : ''}`;
+                likeBtn.title = 'Helpful response';
+                likeBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
 
-                detailsToggle.addEventListener('click', () => {
-                    detailsPanel.classList.toggle('open');
-                    detailsToggle.innerHTML = detailsPanel.classList.contains('open') ? '▴ Hide details' : '▾ Details';
+                const dislikeBtn = document.createElement('button');
+                dislikeBtn.className = `feedback-btn dislike-btn ${rating === 'dislike' ? 'active' : ''}`;
+                dislikeBtn.title = 'Needs improvement';
+                dislikeBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>`;
+
+                feedbackBar.appendChild(likeBtn);
+                feedbackBar.appendChild(dislikeBtn);
+                flexBar.appendChild(feedbackBar);
+
+                container.appendChild(flexBar);
+                if (detailsPanel) container.appendChild(detailsPanel);
+
+                // Note input for Dislike feedback
+                const noteWrapper = document.createElement('div');
+                noteWrapper.className = `feedback-note-input ${rating === 'dislike' && feedbackText ? 'open' : ''}`;
+                noteWrapper.innerHTML = `
+                    <input type="text" class="feedback-note-text" placeholder="What was wrong or missing? (Optional)" value="${escapeHtml(feedbackText || '')}">
+                    <button class="feedback-note-send">Send</button>
+                `;
+                container.appendChild(noteWrapper);
+
+                likeBtn.addEventListener('click', async () => {
+                    likeBtn.classList.add('active');
+                    dislikeBtn.classList.remove('active');
+                    noteWrapper.classList.remove('open');
+                    if (msgObj) {
+                        msgObj.rating = 'like';
+                        await store.updateMessage(msgObj);
+                    }
+                    sendFeedback(questionContext, text, 'like', null, sources, grounded);
                 });
 
-                container.appendChild(detailsToggle);
-                container.appendChild(detailsPanel);
+                dislikeBtn.addEventListener('click', async () => {
+                    const isAlreadyDisliked = dislikeBtn.classList.contains('active');
+                    dislikeBtn.classList.add('active');
+                    likeBtn.classList.remove('active');
+                    noteWrapper.classList.add('open');
+                    if (!isAlreadyDisliked) {
+                        noteWrapper.querySelector('.feedback-note-text').focus();
+                    }
+                    if (msgObj) {
+                        msgObj.rating = 'dislike';
+                        await store.updateMessage(msgObj);
+                    }
+                    sendFeedback(questionContext, text, 'dislike', null, sources, grounded);
+                });
+
+                noteWrapper.querySelector('.feedback-note-send').addEventListener('click', async () => {
+                    const comment = noteWrapper.querySelector('.feedback-note-text').value.trim();
+                    if (msgObj) {
+                        msgObj.feedback_text = comment;
+                        await store.updateMessage(msgObj);
+                    }
+                    await sendFeedback(questionContext, text, 'dislike', comment, sources, grounded);
+                    const btn = noteWrapper.querySelector('.feedback-note-send');
+                    btn.textContent = 'Saved!';
+                    setTimeout(() => { btn.textContent = 'Send'; }, 1800);
+                });
             }
 
             row.appendChild(container);
             messagesInner.appendChild(row);
             scrollToBottom();
             return { row, bubble, contentText };
+        }
+
+        async function sendFeedback(question, answer, rating, feedbackText = null, sources = [], grounded = true) {
+            try {
+                await fetch(CHAT_FEEDBACK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        question: question || 'User Support Question',
+                        answer: answer,
+                        rating: rating,
+                        feedback_text: feedbackText,
+                        sources: sources,
+                        grounded: grounded,
+                    })
+                });
+            } catch (err) {
+                console.error('Failed to submit feedback to server:', err);
+            }
         }
 
         function startThinking() {
@@ -1285,12 +1553,9 @@
                 await createNewChat();
             }
 
-            if (messagesInner.querySelector('.empty-state')) {
-                messagesInner.innerHTML = '';
-                const dateBadge = document.createElement('div');
-                dateBadge.className = 'date-badge';
-                dateBadge.textContent = 'TODAY';
-                messagesInner.appendChild(dateBadge);
+            const suggestionsEl = messagesInner.querySelector('.suggestion-chips-wrapper');
+            if (suggestionsEl) {
+                suggestionsEl.remove();
             }
 
             const nowIso = new Date().toISOString();
