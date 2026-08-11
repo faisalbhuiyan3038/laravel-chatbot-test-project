@@ -19,4 +19,11 @@ interface ChatProvider
      * @param callable(string): void $onToken
      */
     public function completeMessagesStream(array $messages, callable $onToken): void;
+
+    /**
+     * Complete based on an array of messages, returning the full string.
+     *
+     * @param array<int, array{role: string, content: string}> $messages
+     */
+    public function completeMessages(array $messages): string;
 }

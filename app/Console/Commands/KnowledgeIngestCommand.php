@@ -31,12 +31,8 @@ class KnowledgeIngestCommand extends Command
 
         foreach ($projects as $project) {
             $this->info("Processing project: {$project->name}");
-
-            // Example logic for Ansar Recruitment
-            if ($project->slug === 'ansar_recruitment') {
-                $this->ingestFaqs($project, $embedder, $currentModel);
-                $this->ingestDocs($project, $markdownParser, $embedder, $currentModel);
-            }
+            $this->ingestFaqs($project, $embedder, $currentModel);
+            $this->ingestDocs($project, $markdownParser, $embedder, $currentModel);
         }
 
         $this->info("Ingestion complete.");
@@ -44,8 +40,36 @@ class KnowledgeIngestCommand extends Command
 
     private function ingestFaqs(Project $project, EmbeddingProvider $embedder, string $model)
     {
-        $path = database_path('seeders/data/faqs.json');
-        if (!file_exists($path)) return;
+        $slugHyphen = str_replace('_', '-', $project->slug);
+        
+        $possiblePaths = [
+            // Dedicated documentation directory
+            base_path("documentation/{$project->slug}/faqs.json"),
+            base_path("documentation/{$slugHyphen}/faqs.json"),
+            base_path("documentation/{$slugHyphen}-faqs.json"),
+
+            // Seeder data directory
+            database_path("seeders/data/{$slugHyphen}-faqs.json"),
+            database_path("seeders/data/{$project->slug}-faqs.json"),
+        ];
+
+        // Legacy fallback for initial project
+        if ($project->slug === 'ansar_recruitment') {
+            $possiblePaths[] = database_path('seeders/data/faqs.json');
+        }
+
+        $path = null;
+        foreach ($possiblePaths as $candidate) {
+            if (file_exists($candidate)) {
+                $path = $candidate;
+                break;
+            }
+        }
+
+        if (!$path) {
+            $this->warn("No FAQ file found for {$project->name}");
+            return;
+        }
 
         $faqs = json_decode(file_get_contents($path), true);
         if (!$faqs) return;
@@ -73,18 +97,39 @@ class KnowledgeIngestCommand extends Command
                 );
             }
         }
-        $this->info("FAQs ingested.");
+        $this->info("FAQs ingested from " . str_replace(base_path() . DIRECTORY_SEPARATOR, '', $path));
     }
 
     private function ingestDocs(Project $project, MarkdownParserService $parser, EmbeddingProvider $embedder, string $model)
     {
-        $files = [
-            'en' => base_path('ansar-recruitment-docs-en.md'),
-            'bn' => base_path('ansar-recruitment-docs-bn.md'),
-        ];
+        $slugHyphen = str_replace('_', '-', $project->slug);
+        $languages = ['en', 'bn'];
 
-        foreach ($files as $lang => $file) {
-            if (!file_exists($file)) continue;
+        foreach ($languages as $lang) {
+            $possibleFiles = [
+                // Dedicated documentation directory
+                base_path("documentation/{$project->slug}/{$lang}.md"),
+                base_path("documentation/{$slugHyphen}/{$lang}.md"),
+                base_path("documentation/{$project->slug}/docs-{$lang}.md"),
+                base_path("documentation/{$slugHyphen}/docs-{$lang}.md"),
+                base_path("documentation/{$slugHyphen}-docs-{$lang}.md"),
+                base_path("documentation/{$project->slug}-docs-{$lang}.md"),
+
+                // Root & database folder fallback
+                base_path("{$slugHyphen}-docs-{$lang}.md"),
+                base_path("{$project->slug}-docs-{$lang}.md"),
+                database_path("seeders/data/{$slugHyphen}-docs-{$lang}.md"),
+            ];
+
+            $file = null;
+            foreach ($possibleFiles as $candidate) {
+                if (file_exists($candidate)) {
+                    $file = $candidate;
+                    break;
+                }
+            }
+
+            if (!$file) continue;
 
             $parsed = $parser->parse(file_get_contents($file));
             
@@ -99,7 +144,7 @@ class KnowledgeIngestCommand extends Command
                     $model
                 );
             }
-            $this->info("Docs ($lang) ingested.");
+            $this->info("Docs ($lang) ingested from " . str_replace(base_path() . DIRECTORY_SEPARATOR, '', $file));
         }
     }
 

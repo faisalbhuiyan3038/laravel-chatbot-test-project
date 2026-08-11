@@ -35,6 +35,24 @@ class OpenAiCompatibleChatProvider implements ChatProvider
         return $response->json('choices.0.message.content');
     }
 
+    public function completeMessages(array $messages): string
+    {
+        $response = Http::withToken($this->apiKey)
+            ->timeout(120)
+            ->post(rtrim($this->baseUrl, '/') . '/chat/completions', [
+                'model' => $this->model,
+                'messages' => $messages,
+                'temperature' => 0.2,
+                'top_p' => 0.8,
+            ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException("Chat request failed ({$this->baseUrl}): " . $response->body());
+        }
+
+        return $response->json('choices.0.message.content');
+    }
+
     public function completeStream(string $systemPrompt, string $userPrompt, callable $onToken): void
     {
         $messages = [
