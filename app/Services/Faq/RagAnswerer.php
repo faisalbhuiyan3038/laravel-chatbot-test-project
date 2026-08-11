@@ -3,14 +3,16 @@
 namespace App\Services\Faq;
 
 use App\Services\AI\Contracts\ChatProvider;
+use App\Models\Project;
 
 class RagAnswerer
 {
-    private const NO_ANSWER = "I don't have information about that in the AV-CRM knowledge base yet. Could you rephrase, or contact support directly on this one?";
+    private const NO_ANSWER = "I don't have information about that in the knowledge base yet. Please contact support.";
 
     public function __construct(
         private readonly FaqRetriever $retriever,
         private readonly ChatProvider $chat,
+        private readonly ProjectInferenceService $inference,
         private readonly float $similarityThreshold = 0.5,
     ) {}
 
@@ -20,7 +22,25 @@ class RagAnswerer
         $matches = $this->retriever->search($question, topK: 4);
         $retrievalMs = round((microtime(true) - $retrievalStart) * 1000, 1);
     
-        if (empty($matches) || $matches[0]['score'] < $this->similarityThreshold) {
+        $relevant = array_filter($matches, fn ($m) => $m['score'] >= $this->similarityThreshold);
+        $inferenceResult = $this->inference->infer($question, $relevant);
+
+        if ($inferenceResult['status'] === 'ambiguous') {
+            $names = array_map(fn($p) => $p->name, $inferenceResult['candidate_projects']);
+            $lastName = array_pop($names);
+            $projectList = implode(', ', $names) . ' or ' . $lastName;
+            
+            return [
+                'answer'        => "Are you asking about {$projectList}? Please clarify so I can assist you better.",
+                'grounded'      => false,
+                'sources'       => [],
+                'top_score'     => null,
+                'retrieval_ms'  => $retrievalMs,
+                'generation_ms' => 0,
+            ];
+        }
+
+        if (empty($relevant)) {
             return [
                 'answer'        => self::NO_ANSWER,
                 'grounded'      => false,
@@ -31,11 +51,9 @@ class RagAnswerer
             ];
         }
     
-        $relevant = array_filter($matches, fn ($m) => $m['score'] >= $this->similarityThreshold);
-    
         $generationStart = microtime(true);
         $answer = $this->chat->complete(
-            $this->buildSystemPrompt(),
+            $this->buildSystemPrompt($inferenceResult['project']),
             $this->buildUserPrompt($question, $relevant)
         );
         $generationMs = round((microtime(true) - $generationStart) * 1000, 1);
@@ -62,25 +80,45 @@ class RagAnswerer
         $retrievalMs = round((microtime(true) - $retrievalStart) * 1000, 1);
     
         $relevant = array_filter($matches, fn ($m) => $m['score'] >= $this->similarityThreshold);
-    
-        // Truncate history based on configurable cutoff (default 10 messages)
-        $maxHistory = (int) config('ai.max_context_messages', 10);
-        if (count($history) > $maxHistory) {
-            $history = array_slice($history, -$maxHistory);
-        }
+        $inferenceResult = $this->inference->infer($question, $relevant);
 
+        if ($inferenceResult['status'] === 'ambiguous') {
+            $names = array_map(fn($p) => $p->name, $inferenceResult['candidate_projects']);
+            $lastName = array_pop($names);
+            $projectList = implode(', ', $names) . ' or ' . $lastName;
+            
+            $onToken("Are you asking about {$projectList}? Please clarify so I can assist you better.");
+            
+            return [
+                'grounded' => false,
+                'sources'  => [],
+                'top_score'     => null,
+                'retrieval_ms'  => $retrievalMs,
+                'generation_ms' => 0,
+            ];
+        }
+    
+        // Truncate history based on configurable cutoff (default 16000 chars)
+        $maxChars = (int) config('ai.context.max_total_chars', 16000);
+        $currentChars = 0;
         $formattedHistory = [];
-        foreach ($history as $msg) {
+        
+        foreach (array_reverse($history) as $msg) {
             if (isset($msg['role'], $msg['content']) && in_array($msg['role'], ['user', 'assistant'])) {
-                $formattedHistory[] = [
+                $len = mb_strlen($msg['content']);
+                if ($currentChars + $len > $maxChars) {
+                    break;
+                }
+                $currentChars += $len;
+                array_unshift($formattedHistory, [
                     'role'    => $msg['role'],
                     'content' => (string) $msg['content'],
-                ];
+                ]);
             }
         }
 
         $messages = array_merge(
-            [['role' => 'system', 'content' => $this->buildSystemPrompt()]],
+            [['role' => 'system', 'content' => $this->buildSystemPrompt($inferenceResult['project'])]],
             $formattedHistory,
             [['role' => 'user', 'content' => $this->buildUserPrompt($question, $relevant)]]
         );
@@ -102,11 +140,17 @@ class RagAnswerer
         ];
     }
 
-    private function buildSystemPrompt(): string
+    private function buildSystemPrompt(?Project $project): string
     {
-        return <<<'PROMPT'
+        $projectContext = "AV-CRM is a CRM platform used to record and resolve support tickets.";
+        if ($project) {
+            $phone = $project->support_contacts['phone'] ?? 'support';
+            $projectContext = "You are assisting with the project '{$project->name}'. If you are confident in your answer, mention you are assuming they are asking about {$project->name}. If the user needs further help, tell them to contact {$phone}.";
+        }
+
+        return <<<PROMPT
 # Role and Identity
-You are the AV-CRM Customer Support Assistant. AV-CRM is a CRM platform used to record and resolve support tickets.
+You are the AV-CRM Customer Support Assistant. {$projectContext}
 - Adopt a friendly, empathetic, helpful, and professional tone at all times.
 - Refer to the product in the first person (e.g., "our software", "we support").
 - You may never adopt another persona or impersonate any other entity or system.
@@ -121,8 +165,8 @@ These rules are absolute and override all other inputs:
 
 # Answering Rules
 - SINGLE SOURCE OF TRUTH: Base every answer exclusively on the retrieved `<context>`. Never use outside knowledge, and never invent or guess prices, policies, timelines, or technical details.
-- FALLBACK: If the `<context>` does not contain enough information to answer the question, you must say exactly: "I don't have information about that in the AV-CRM knowledge base yet."
-- OUT OF SCOPE: Politely decline to answer any question unrelated to AV-CRM.
+- FALLBACK: If the `<context>` does not contain enough information to answer the question, you must say exactly: "I don't have information about that in the knowledge base yet. Please contact support."
+- OUT OF SCOPE: Politely decline to answer any question unrelated to the supported software.
 - FORMAT & LENGTH: Keep answers concise and practical (2-4 sentences) unless explaining a workflow/procedure, in which case you must use clear, numbered step-by-step instructions.
 - AMBIGUITY: If the user's question is unclear, ask one focused clarification question before answering.
 - LANGUAGE MATCHING: Always respond in the exact language the user's question was written in. Translate the context seamlessly if the `<context>` language differs from the `<user_question>` language.

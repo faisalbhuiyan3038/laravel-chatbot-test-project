@@ -28,7 +28,7 @@ class FaqRetriever
      *
      * @param string $question
      * @param int $topK
-     * @return array<int, array{id:int, question:string, answer:string, score:float}>
+     * @return array<int, array{id:int, project_id:int, question:string, answer:string, score:float}>
      */
     public function search(string $question, int $topK = 4): array
     {
@@ -87,10 +87,11 @@ class FaqRetriever
 
         foreach ($this->loadEmbeddedRows($lang, $currentModel) as $row) {
             $scored[] = [
-                'id'       => $row['id'],
-                'question' => $row['question'],
-                'answer'   => $row['answer'],
-                'score'    => $this->cosineSimilarity($queryVector, $queryNorm, $row['vector'], $row['norm']),
+                'id'         => $row['id'],
+                'project_id' => $row['project_id'],
+                'question'   => $row['question'],
+                'answer'     => $row['answer'],
+                'score'      => $this->cosineSimilarity($queryVector, $queryNorm, $row['vector'], $row['norm']),
             ];
         }
 
@@ -119,30 +120,29 @@ class FaqRetriever
 
     private function loadEmbeddedRows(string $lang, string $currentModel): array
     {
-        $cols = $lang === 'bn'
-            ? ['q' => 'question_bn', 'a' => 'answer_bn', 'emb' => 'embedding_bn', 'model' => 'embedding_bn_model', 'norm' => 'embedding_bn_norm']
-            : ['q' => 'question',    'a' => 'answer',    'emb' => 'embedding',    'model' => 'embedding_model',    'norm' => 'embedding_norm'];
-
         return Cache::remember(
-            "faq_embeddings:{$lang}:{$currentModel}",
+            "knowledge_embeddings:{$lang}:{$currentModel}",
             now()->addMinutes(10),
-            fn () => DB::table('faqs')
-                ->where($cols['model'], $currentModel)
-                ->whereNotNull($cols['emb'])
+            fn () => DB::table('knowledge_chunks')
+                ->where('language', $lang)
+                ->where('embedding_model', $currentModel)
+                ->whereNotNull('embedding')
                 ->select(
                     'id',
-                    "{$cols['q']} as question",
-                    "{$cols['a']} as answer",
-                    "{$cols['emb']} as embedding",
-                    "{$cols['norm']} as norm",
+                    'project_id',
+                    'title as question',
+                    'content as answer',
+                    'embedding',
+                    'embedding_norm as norm',
                 )
                 ->get()
                 ->map(fn ($row) => [
-                    'id'       => $row->id,
-                    'question' => $row->question,
-                    'answer'   => $row->answer,
-                    'vector'   => VectorCodec::decode($row->embedding),
-                    'norm'     => $row->norm,
+                    'id'         => $row->id,
+                    'project_id' => $row->project_id,
+                    'question'   => $row->question,
+                    'answer'     => $row->answer,
+                    'vector'     => VectorCodec::decode($row->embedding),
+                    'norm'       => $row->norm,
                 ])
                 ->all()
         );
