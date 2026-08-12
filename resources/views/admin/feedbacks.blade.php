@@ -304,6 +304,48 @@
             justify-content: space-between;
             align-items: center;
         }
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.15s;
+        }
+        .user-pill:hover {
+            background: #e2e8f0;
+        }
+        .user-pill-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--accent-teal);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .logout-btn {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .logout-btn:hover {
+            background: #fecaca;
+        }
     </style>
 </head>
 <body>
@@ -316,6 +358,16 @@
         <div class="nav-links">
             <a href="{{ route('chat.index') }}" class="nav-link">💬 Chat Interface</a>
             <a href="{{ route('admin.feedbacks') }}" class="nav-link active">📊 Knowledge Base Feedbacks</a>
+            @auth
+                <a href="{{ route('profile.show') }}" class="user-pill" title="View Profile">
+                    <span class="user-pill-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</span>
+                    <span>{{ auth()->user()->name }}</span>
+                </a>
+                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                    @csrf
+                    <button type="submit" class="logout-btn">Log Out</button>
+                </form>
+            @endauth
         </div>
     </header>
 

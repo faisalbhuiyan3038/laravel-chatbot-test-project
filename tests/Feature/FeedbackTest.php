@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ChatFeedback;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -46,15 +47,23 @@ class FeedbackTest extends TestCase
         ]);
     }
 
-    public function test_admin_dashboard_loads(): void
+    public function test_admin_dashboard_redirects_guest(): void
     {
+        $response = $this->get(route('admin.feedbacks'));
+        $response->assertRedirect(route('login'));
+    }
+
+    public function test_admin_dashboard_loads_for_authenticated_user(): void
+    {
+        $user = User::factory()->create();
+
         ChatFeedback::create([
             'question' => 'Sample Question',
             'answer'   => 'Sample Answer',
             'rating'   => 'like',
         ]);
 
-        $response = $this->get(route('admin.feedbacks'));
+        $response = $this->actingAs($user)->get(route('admin.feedbacks'));
 
         $response->assertStatus(200)
                  ->assertSee('Knowledge Base Feedbacks')

@@ -819,8 +819,13 @@
         <aside id="sidebar">
             <div class="sidebar-header">
                 <div class="user-profile">
-                    <div class="user-avatar">AV</div>
-                    <span class="profile-title">AV-CRM Chats</span>
+                    @auth
+                        <div class="user-avatar" style="background: #00a884; color: #fff;">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</div>
+                        <span class="profile-title" style="font-size: 14px; font-weight: 600;">{{ auth()->user()->name }}</span>
+                    @else
+                        <div class="user-avatar">AV</div>
+                        <span class="profile-title">AV-CRM Chats</span>
+                    @endauth
                 </div>
                 <div class="sidebar-actions">
                     <button class="icon-btn" id="new-chat-btn" title="New Chat">
@@ -872,6 +877,19 @@
                     <button class="icon-btn" id="delete-current-btn" title="Delete this Chat">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
+                    @auth
+                        <a href="{{ route('profile.show') }}" class="icon-btn" title="User Profile ({{ auth()->user()->name }})" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </a>
+                        <form action="{{ route('logout') }}" method="POST" style="display: inline-flex;">
+                            @csrf
+                            <button type="submit" class="icon-btn" title="Log Out" style="color: #ef4444; background: none; border: none; cursor: pointer;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            </button>
+                        </form>
+                    @else
+                        <a href="{{ route('login') }}" style="background: #00a884; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;" title="Log In to Dashboard">Log In</a>
+                    @endauth
                 </div>
             </header>
 
