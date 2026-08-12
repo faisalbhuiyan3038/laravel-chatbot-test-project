@@ -5,6 +5,7 @@ use App\Http\Controllers\FaqChatController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\IssueController;
 
 Route::get('/', function () {
     return redirect()->route('chat.index');
@@ -34,4 +35,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/admin/feedbacks', [FeedbackController::class, 'dashboard'])->name('admin.feedbacks');
     Route::delete('/admin/feedbacks/{id}', [FeedbackController::class, 'destroy'])->name('admin.feedbacks.destroy');
+
+    // Issue Management Routes
+    Route::get('/issues', [IssueController::class, 'index'])->name('issues.index');
+    Route::get('/issues/create', [IssueController::class, 'create'])->name('issues.create');
+    Route::post('/issues', [IssueController::class, 'store'])->name('issues.store');
+    Route::get('/issues/{id}', [IssueController::class, 'show'])->name('issues.show');
+    Route::delete('/issues/{id}', [IssueController::class, 'destroy'])->name('issues.destroy');
+    Route::get('/issues/{issueId}/attachment/{attachmentId}', [IssueController::class, 'downloadAttachment'])->name('issues.attachment.download');
 });

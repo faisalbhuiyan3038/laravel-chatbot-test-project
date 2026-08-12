@@ -357,6 +357,7 @@
         </div>
         <div class="nav-links">
             <a href="{{ route('chat.index') }}" class="nav-link">💬 Chat Interface</a>
+            <a href="{{ route('issues.index') }}" class="nav-link">📋 My Issues</a>
             <a href="{{ route('admin.feedbacks') }}" class="nav-link active">📊 Knowledge Base Feedbacks</a>
             @auth
                 <a href="{{ route('profile.show') }}" class="user-pill" title="View Profile">

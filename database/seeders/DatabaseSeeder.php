@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(ProjectSeeder::class);
+        $this->call(IssueCategorySeeder::class);
 
         User::firstOrCreate(
             ['email' => 'admin@avcrm.ai'],
