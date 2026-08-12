@@ -1,0 +1,5 @@
+- Eligibility rules shown as a plain-text/string message for a specific job circular. Source: DB or API endpoint, per the notes.
+- Structured eligibility constraint data for a specific job circular. Source: DB or API endpoint, per the notes.
+- FAQ question-and-answer list displayed on the website. Source: DB or API endpoint, per the notes.
+- The list of currently active/eligible job circulars shown to public users. This list can change at any time and should be pulled from the DB or API, not embedded as static text.
+- Per-circular application deadlines/windows. These are stored in the DB or API per circular and should be fetched live rather than documented as fixed dates.

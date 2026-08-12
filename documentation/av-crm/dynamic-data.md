@@ -1,0 +1,2 @@
+- The list of issues/tickets a user has created — must be fetched live from the DB/API, not documented as static content. Shown on the Dashboard (see "avcrm-dashboard-tracking").
+- The status of an individual issue/ticket — must be fetched live from the DB/API, not documented as static content. Shown on the Dashboard (see "avcrm-dashboard-tracking").

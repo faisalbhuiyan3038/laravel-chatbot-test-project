@@ -1,0 +1,74 @@
+[
+  {
+    "question": "What is the application procedure for job circulars?",
+    "answer": "To apply for a job position, follow these steps: 1. Visit the official portal at https://recruitment.bdansarerp.gov.bd/application-circulars. 2. Locate the 'Job Notices' section and click on the desired job circular. 3. Click the 'Apply' button next to the selected position. 4. Carefully read the instructions on the page and select the checkbox to unlock the application form. 5. Enter the required details, including District, Applicant Mobile Number, and NID Number, then click 'Pay with SSLCommerz'. 6. Select a preferred payment method (e.g., bKash, Rocket, or Bank) and complete the fee payment. 7. Upon successful payment, wait for an SMS containing the login credentials (Applicant ID and Password). 8. Click the 'Login' button and log in using the provided credentials. 9. After logging in, the applicant can view and print the Admit Card.",
+    "question_bn": "চাকরির সার্কুলারে আবেদন করার প্রক্রিয়া কী?",
+    "answer_bn": "চাকরির পদের জন্য আবেদন করতে নিচের ধাপগুলো অনুসরণ করুন: ১. অফিসিয়াল পোর্টাল https://recruitment.bdansarerp.gov.bd/application-circulars এ যান। ২. 'Job Notices' বিভাগে গিয়ে কাঙ্ক্ষিত চাকরির সার্কুলারে ক্লিক করুন। ৩. নির্বাচিত পদের পাশে থাকা 'Apply' বাটনে ক্লিক করুন। ৪. পৃষ্ঠায় দেওয়া নির্দেশনাগুলো ভালোভাবে পড়ে চেকবক্স নির্বাচন করুন, এতে আবেদন ফর্মটি চালু হবে। ৫. প্রয়োজনীয় তথ্য যেমন জেলা, আবেদনকারীর মোবাইল নম্বর এবং NID নম্বর প্রদান করে 'Pay with SSLCommerz' বাটনে ক্লিক করুন। ৬. পছন্দের পেমেন্ট পদ্ধতি (যেমন bKash, Rocket অথবা ব্যাংক) নির্বাচন করে আবেদন ফি পরিশোধ করুন। ৭. সফলভাবে পেমেন্ট সম্পন্ন হলে Applicant ID এবং Password সহ একটি SMS পাওয়ার জন্য অপেক্ষা করুন। ৮. 'Login' বাটনে ক্লিক করে প্রাপ্ত তথ্য দিয়ে লগইন করুন। ৯. লগইন করার পর আবেদনকারী Admit Card দেখতে ও প্রিন্ট করতে পারবেন।"
+  },
+  {
+    "question": "Will documents attested one year ago be accepted for the application?",
+    "answer": "For queries regarding the validity of older attested documents, applicants must contact support for assistance.",
+    "question_bn": "এক বছর আগে সত্যায়িত করা কাগজপত্র কি আবেদনের জন্য গ্রহণযোগ্য হবে?",
+    "answer_bn": "পুরনো সত্যায়িত কাগজপত্রের গ্রহণযোগ্যতা বা বৈধতা সম্পর্কে জানতে আবেদনকারীকে সহায়তার জন্য সাপোর্টে যোগাযোগ করতে হবে।"
+  },
+  {
+    "question": "How can an applicant correct incorrect information such as Date of Birth, Upazila, NID, or Mobile Number?",
+    "answer": "If there is an error in information such as Date of Birth, Upazila, NID number, or Mobile Number, the applicant should contact support and submit the relevant documents for correction.",
+    "question_bn": "জন্ম তারিখ, উপজেলা, NID বা মোবাইল নম্বরের মতো ভুল তথ্য কীভাবে সংশোধন করা যাবে?",
+    "answer_bn": "জন্ম তারিখ, উপজেলা, NID নম্বর বা মোবাইল নম্বরের মতো কোনো তথ্যে ভুল থাকলে আবেদনকারীকে সাপোর্টে যোগাযোগ করে সংশোধনের জন্য প্রয়োজনীয় কাগজপত্র জমা দিতে হবে।"
+  },
+  {
+    "question": "Is it possible to cancel an application and get a refund?",
+    "answer": "No, applications cannot be canceled once submitted. Application fees are non-refundable after payment has been completed.",
+    "question_bn": "আবেদন জমা দেওয়ার পর কি আবেদন বাতিল করে টাকা ফেরত পাওয়া যাবে?",
+    "answer_bn": "না, আবেদন জমা দেওয়ার পর তা বাতিল করা যাবে না। পেমেন্ট সম্পন্ন হওয়ার পর আবেদন ফি ফেরতযোগ্য নয়।"
+  },
+  {
+    "question": "How does an applicant receive their login Applicant ID and Password after applying?",
+    "answer": "Once the application fee payment is completed, the applicant will receive an SMS containing their Applicant ID and Password on the provided mobile number. The applicant can then log in at https://recruitment.bdansarerp.gov.bd/application-circulars using those credentials.",
+    "question_bn": "আবেদন করার পর আবেদনকারী কীভাবে Login Applicant ID এবং Password পাবেন?",
+    "answer_bn": "আবেদন ফি পরিশোধ সম্পন্ন হলে আবেদনকারীর প্রদত্ত মোবাইল নম্বরে Applicant ID এবং Password সহ একটি SMS পাঠানো হবে। এরপর আবেদনকারী https://recruitment.bdansarerp.gov.bd/application-circulars এ গিয়ে উক্ত তথ্য ব্যবহার করে লগইন করতে পারবেন।"
+  },
+  {
+    "question": "What should an applicant do if the login attempt displays an 'Invalid' error?",
+    "answer": "If an invalid login error appears, please wait for up to 1 minute for the system to recognize the credentials. If the error persists, refresh the web browser page and attempt to log in again.",
+    "question_bn": "লগইন করার সময় 'Invalid' ত্রুটি দেখালে আবেদনকারীর কী করা উচিত?",
+    "answer_bn": "লগইন করার সময় Invalid ত্রুটি দেখালে সিস্টেমের তথ্য গ্রহণ করার জন্য সর্বোচ্চ ১ মিনিট অপেক্ষা করুন। এরপরও সমস্যা থাকলে ব্রাউজার পেজ রিফ্রেশ করে পুনরায় লগইন করার চেষ্টা করুন।"
+  },
+  {
+    "question": "What should an applicant do if payment is completed but no Applicant ID and Password are received?",
+    "answer": "Applicants should wait at least 3 hours after payment completion to receive the confirmation SMS. If the message is still not received after 3 hours, contact support for assistance.",
+    "question_bn": "পেমেন্ট সম্পন্ন হওয়ার পরও Applicant ID এবং Password না পেলে কী করতে হবে?",
+    "answer_bn": "পেমেন্ট সম্পন্ন হওয়ার পর নিশ্চিতকরণ SMS পাওয়ার জন্য কমপক্ষে ৩ ঘণ্টা অপেক্ষা করুন। ৩ ঘণ্টার পরও SMS না পেলে সহায়তার জন্য সাপোর্টে যোগাযোগ করুন।"
+  },
+  {
+    "question": "What should an applicant do if the application form is submitted but no confirmation message is received?",
+    "answer": "Applicants should wait at least 3 hours for the system to process the submission. If no confirmation SMS is received after 3 hours, please contact support.",
+    "question_bn": "আবেদন ফর্ম জমা দেওয়ার পরও নিশ্চিতকরণ বার্তা না পেলে কী করতে হবে?",
+    "answer_bn": "আবেদন জমা দেওয়ার পর সিস্টেমের প্রক্রিয়া সম্পন্ন হওয়ার জন্য কমপক্ষে ৩ ঘণ্টা অপেক্ষা করুন। ৩ ঘণ্টার পরও নিশ্চিতকরণ SMS না পেলে সাপোর্টে যোগাযোগ করুন।"
+  },
+  {
+    "question": "What is the payment procedure for the application fee?",
+    "answer": "To pay the application fee: 1. Fill out the application details including District, Applicant Mobile Number, and NID Number. 2. Click the 'Pay with SSLCommerz' button. 3. Select a preferred payment method (such as bKash, Rocket, or supported bank channels) and complete the payment transaction. 4. Wait for the confirmation SMS containing the Applicant ID and Password.",
+    "question_bn": "আবেদন ফি পরিশোধের প্রক্রিয়া কী?",
+    "answer_bn": "আবেদন ফি পরিশোধ করতে: ১. জেলা, আবেদনকারীর মোবাইল নম্বর এবং NID নম্বরসহ আবেদন সংক্রান্ত তথ্য পূরণ করুন। ২. 'Pay with SSLCommerz' বাটনে ক্লিক করুন। ৩. পছন্দের পেমেন্ট পদ্ধতি (যেমন bKash, Rocket অথবা সমর্থিত ব্যাংক চ্যানেল) নির্বাচন করে পেমেন্ট সম্পন্ন করুন। ৪. Applicant ID এবং Password সম্বলিত নিশ্চিতকরণ SMS পাওয়ার জন্য অপেক্ষা করুন।"
+  },
+  {
+    "question": "Can an applicant apply using a Birth Certificate number instead of an NID card?",
+    "answer": "No, a valid National ID (NID) number is required to apply. Applications cannot be submitted using a Birth Certificate number.",
+    "question_bn": "NID কার্ডের পরিবর্তে জন্ম নিবন্ধন নম্বর দিয়ে কি আবেদন করা যাবে?",
+    "answer_bn": "না, আবেদন করার জন্য বৈধ National ID (NID) নম্বর প্রয়োজন। জন্ম নিবন্ধন নম্বর ব্যবহার করে আবেদন জমা দেওয়া যাবে না।"
+  },
+  {
+    "question": "What are the eligibility requirements for the job application?",
+    "answer": "Eligibility requirements vary depending on the specific job circular. Applicants should review the specific educational, physical, and age criteria listed in the detailed job notice at https://recruitment.bdansarerp.gov.bd/application-circulars before applying.",
+    "question_bn": "চাকরির আবেদনের যোগ্যতার শর্তগুলো কী কী?",
+    "answer_bn": "যোগ্যতার শর্ত নির্দিষ্ট চাকরির সার্কুলার অনুযায়ী ভিন্ন হতে পারে। আবেদন করার আগে https://recruitment.bdansarerp.gov.bd/application-circulars এ বিস্তারিত চাকরির বিজ্ঞপ্তিতে উল্লেখিত শিক্ষাগত যোগ্যতা, শারীরিক যোগ্যতা এবং বয়সের শর্তগুলো দেখে নিন।"
+  },
+  {
+    "question": "What should an applicant do if incorrect NID information was entered during application?",
+    "answer": "If incorrect NID information was entered during submission, the applicant must contact support and provide the relevant identifying details to request assistance.",
+    "question_bn": "আবেদনের সময় ভুল NID তথ্য প্রদান করলে কী করতে হবে?",
+    "answer_bn": "আবেদন জমা দেওয়ার সময় ভুল NID তথ্য প্রদান করা হলে আবেদনকারীকে সাপোর্টে যোগাযোগ করে প্রয়োজনীয় পরিচয় সংক্রান্ত তথ্য প্রদান করে সহায়তা চাইতে হবে।"
+  }
+]

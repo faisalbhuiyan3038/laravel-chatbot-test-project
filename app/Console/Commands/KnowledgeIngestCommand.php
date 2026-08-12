@@ -27,6 +27,11 @@ class KnowledgeIngestCommand extends Command
             return;
         }
 
+        if ($this->confirm('Do you want to clear existing knowledge base?', false)) {
+            KnowledgeChunk::truncate();
+            $this->info("Cleared existing knowledge base.");
+        }
+
         $currentModel = config('ai.providers.' . config('ai.embedding_provider') . '.embedding_model');
 
         foreach ($projects as $project) {
@@ -47,16 +52,7 @@ class KnowledgeIngestCommand extends Command
             base_path("documentation/{$project->slug}/faqs.json"),
             base_path("documentation/{$slugHyphen}/faqs.json"),
             base_path("documentation/{$slugHyphen}-faqs.json"),
-
-            // Seeder data directory
-            database_path("seeders/data/{$slugHyphen}-faqs.json"),
-            database_path("seeders/data/{$project->slug}-faqs.json"),
         ];
-
-        // Legacy fallback for initial project
-        if ($project->slug === 'ansar_recruitment') {
-            $possiblePaths[] = database_path('seeders/data/faqs.json');
-        }
 
         $path = null;
         foreach ($possiblePaths as $candidate) {
@@ -114,11 +110,6 @@ class KnowledgeIngestCommand extends Command
                 base_path("documentation/{$slugHyphen}/docs-{$lang}.md"),
                 base_path("documentation/{$slugHyphen}-docs-{$lang}.md"),
                 base_path("documentation/{$project->slug}-docs-{$lang}.md"),
-
-                // Root & database folder fallback
-                base_path("{$slugHyphen}-docs-{$lang}.md"),
-                base_path("{$project->slug}-docs-{$lang}.md"),
-                database_path("seeders/data/{$slugHyphen}-docs-{$lang}.md"),
             ];
 
             $file = null;

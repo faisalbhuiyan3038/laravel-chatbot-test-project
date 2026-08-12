@@ -13,9 +13,21 @@ class ProjectSeeder extends Seeder
             ['slug' => 'ansar_recruitment'],
             [
                 'name' => 'Ansar Recruitment',
-                'aliases' => ['ansar', 'vdp', 'ansar recruitment'],
+                'aliases' => ['recruitment', 'ansar recruitment'],
                 'support_contacts' => [
-                    'phone' => '09677112244'
+                    // 'phone' => '09677112244'
+                ],
+                'is_active' => true,
+            ]
+        );
+
+        Project::updateOrCreate(
+            ['slug' => 'av-crm'],
+            [
+                'name' => 'AV-CRM',
+                'aliases' => ['crm', 'Customer Relationship Management', 'av-crm'],
+                'support_contacts' => [
+                    // 'phone' => '09677112244'
                 ],
                 'is_active' => true,
             ]
