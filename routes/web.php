@@ -41,6 +41,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/issues/create', [IssueController::class, 'create'])->name('issues.create');
     Route::post('/issues', [IssueController::class, 'store'])->name('issues.store');
     Route::get('/issues/{id}', [IssueController::class, 'show'])->name('issues.show');
+    Route::get('/issues/{id}/edit', [IssueController::class, 'edit'])->name('issues.edit');
+    Route::match(['put', 'patch'], '/issues/{id}', [IssueController::class, 'update'])->name('issues.update');
     Route::delete('/issues/{id}', [IssueController::class, 'destroy'])->name('issues.destroy');
     Route::get('/issues/{issueId}/attachment/{attachmentId}', [IssueController::class, 'downloadAttachment'])->name('issues.attachment.download');
 });

@@ -19,12 +19,17 @@ class DatabaseSeeder extends Seeder
         $this->call(ProjectSeeder::class);
         $this->call(IssueCategorySeeder::class);
 
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => 'admin@avcrm.ai'],
             [
                 'name' => 'Admin User',
                 'password' => Hash::make('password'),
+                'role' => 'admin',
             ]
         );
+
+        if ($admin->role !== 'admin') {
+            $admin->update(['role' => 'admin']);
+        }
     }
 }

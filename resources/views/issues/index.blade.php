@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Issues — AV-CRM Intelligence</title>
+    <title>{{ auth()->user()->isAdmin() ? 'All System Issues' : 'My Issues' }} — AV-CRM Intelligence</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -145,7 +145,20 @@
             font-size: 24px;
             font-weight: 700;
             margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
+
+        .role-badge {
+            font-size: 12px;
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .role-admin { background: #fee2e2; color: #991b1b; }
+        .role-user { background: #e0f2fe; color: #075985; }
 
         .page-subtitle {
             font-size: 14px;
@@ -212,7 +225,6 @@
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: #f8fafc; }
 
-        /* Status Badges */
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -222,16 +234,10 @@
             font-size: 12px;
             font-weight: 600;
         }
-
-        /* 0: Open */
         .status-0 { background: #dcfce7; color: #15803d; }
-        /* 1: Locked */
         .status-1 { background: #f1f5f9; color: #475569; }
-        /* 2: In Progress */
         .status-2 { background: #dbeafe; color: #1e40af; }
-        /* 3: Resolved */
         .status-3 { background: #ccfbf1; color: #0f766e; }
-        /* 4: Closed */
         .status-4 { background: #f3f4f6; color: #6b7280; }
 
         .category-badge {
@@ -244,7 +250,7 @@
         }
 
         .details-snippet {
-            max-width: 320px;
+            max-width: 280px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -254,15 +260,15 @@
         .action-btns {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .btn-action {
             background: none;
             border: 1px solid var(--border);
-            padding: 5px 10px;
+            padding: 5px 9px;
             border-radius: 6px;
-            font-size: 12.5px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-secondary);
             text-decoration: none;
@@ -301,7 +307,7 @@
         </div>
         <div class="nav-links">
             <a href="{{ route('chat.index') }}" class="nav-link">💬 Public Chat</a>
-            <a href="{{ route('issues.index') }}" class="nav-link active">📋 My Issues</a>
+            <a href="{{ route('issues.index') }}" class="nav-link active">📋 Issues</a>
             <a href="{{ route('admin.feedbacks') }}" class="nav-link">📊 Feedback Dashboard</a>
             @auth
                 <a href="{{ route('profile.show') }}" class="user-pill" title="View Profile">
@@ -319,8 +325,15 @@
     <div class="container">
         <div class="page-header">
             <div>
-                <h1 class="page-title">My Created Issues</h1>
-                <p class="page-subtitle">View and manage issues submitted by your account.</p>
+                <h1 class="page-title">
+                    <span>{{ auth()->user()->isAdmin() ? 'All System Issues' : 'My Created Issues' }}</span>
+                    <span class="role-badge {{ auth()->user()->isAdmin() ? 'role-admin' : 'role-user' }}">
+                        {{ auth()->user()->role }}
+                    </span>
+                </h1>
+                <p class="page-subtitle">
+                    {{ auth()->user()->isAdmin() ? 'As an Administrator, you can view, edit, status-update, and manage all issues across the platform.' : 'View and manage issues submitted by your account.' }}
+                </p>
             </div>
             <a href="{{ route('issues.create') }}" class="btn-create">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -336,19 +349,28 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 60px;">ID</th>
-                        <th style="width: 220px;">Category</th>
+                        <th style="width: 50px;">ID</th>
+                        @if(auth()->user()->isAdmin())
+                            <th style="width: 180px;">Submitted By</th>
+                        @endif
+                        <th style="width: 200px;">Category</th>
                         <th>Details</th>
-                        <th style="width: 160px;">Issue Date/Time</th>
+                        <th style="width: 150px;">Issue Date/Time</th>
                         <th style="width: 120px;">Status</th>
-                        <th style="width: 100px;">Attachments</th>
-                        <th style="width: 140px;">Actions</th>
+                        <th style="width: 90px;">Files</th>
+                        <th style="width: 160px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($issues as $issue)
                         <tr>
                             <td style="font-weight: 600; color: var(--text-muted);">#{{ $issue->id }}</td>
+                            @if(auth()->user()->isAdmin())
+                                <td>
+                                    <div style="font-weight: 600; color: var(--text-primary);">{{ $issue->user->name ?? 'Unknown' }}</div>
+                                    <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $issue->user->email ?? 'N/A' }}</div>
+                                </td>
+                            @endif
                             <td>
                                 <span class="category-badge">{{ $issue->category->name }}</span>
                             </td>
@@ -357,7 +379,7 @@
                                     {{ $issue->details }}
                                 </div>
                             </td>
-                            <td style="font-size: 12.5px; color: var(--text-secondary);">
+                            <td style="font-size: 12px; color: var(--text-secondary);">
                                 {{ $issue->issue_date->format('M d, Y H:i') }}
                             </td>
                             <td>
@@ -367,14 +389,15 @@
                             </td>
                             <td>
                                 @if($issue->attachments->count() > 0)
-                                    <span style="font-weight: 600; font-size: 12.5px;">📎 {{ $issue->attachments->count() }} file(s)</span>
+                                    <span style="font-weight: 600; font-size: 12px;">📎 {{ $issue->attachments->count() }}</span>
                                 @else
-                                    <span style="color: var(--text-muted); font-size: 12.5px;">None</span>
+                                    <span style="color: var(--text-muted); font-size: 12px;">0</span>
                                 @endif
                             </td>
                             <td>
                                 <div class="action-btns">
                                     <a href="{{ route('issues.show', $issue->id) }}" class="btn-action" title="View details">View</a>
+                                    <a href="{{ route('issues.edit', $issue->id) }}" class="btn-action" title="Edit issue">Edit</a>
                                     <form action="{{ route('issues.destroy', $issue->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this issue?');" style="display: inline;">
                                         @csrf
                                         @method('DELETE')
@@ -385,8 +408,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-muted);">
-                                You haven't created any issues yet. Click <strong>"Create New Issue"</strong> above to record a new issue.
+                            <td colspan="{{ auth()->user()->isAdmin() ? '8' : '7' }}" style="text-align: center; padding: 48px; color: var(--text-muted);">
+                                No issues found in the system.
                             </td>
                         </tr>
                     @endforelse

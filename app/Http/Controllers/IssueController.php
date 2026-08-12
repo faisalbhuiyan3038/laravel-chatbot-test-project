@@ -14,12 +14,31 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class IssueController extends Controller
 {
+    private function getAccessibleIssue(int $id): Issue
+    {
+        $user = Auth::user();
+
+        if ($user->isAdmin()) {
+            return Issue::with(['user', 'category', 'attachments'])->findOrFail($id);
+        }
+
+        return $user->issues()->with(['category', 'attachments'])->findOrFail($id);
+    }
+
     public function index(): View
     {
-        $issues = Auth::user()->issues()
-            ->with(['category', 'attachments'])
-            ->latest()
-            ->paginate(10);
+        $user = Auth::user();
+
+        if ($user->isAdmin()) {
+            $issues = Issue::with(['user', 'category', 'attachments'])
+                ->latest()
+                ->paginate(15);
+        } else {
+            $issues = $user->issues()
+                ->with(['category', 'attachments'])
+                ->latest()
+                ->paginate(10);
+        }
 
         return view('issues.index', compact('issues'));
     }
@@ -50,7 +69,7 @@ class IssueController extends Controller
             'issue_category_id' => $validated['issue_category_id'],
             'issue_date'        => $validated['issue_date'],
             'details'           => $validated['details'],
-            'status'            => Issue::STATUS_OPEN,
+            'status'            => Issue::STATUS_OPEN, // Initially '0'
         ]);
 
         if ($request->hasFile('attachments')) {
@@ -72,18 +91,81 @@ class IssueController extends Controller
 
     public function show(int $id): View
     {
-        $issue = Auth::user()->issues()
-            ->with(['category', 'attachments'])
-            ->findOrFail($id);
+        $issue = $this->getAccessibleIssue($id);
 
         return view('issues.show', compact('issue'));
     }
 
+    public function edit(int $id): View
+    {
+        $issue = $this->getAccessibleIssue($id);
+        $categories = IssueCategory::all();
+
+        return view('issues.edit', compact('issue', 'categories'));
+    }
+
+    public function update(Request $request, int $id): RedirectResponse
+    {
+        $issue = $this->getAccessibleIssue($id);
+        $user = Auth::user();
+
+        $rules = [
+            'issue_category_id' => ['required', 'exists:issue_categories,id'],
+            'issue_date'        => ['required', 'date', 'before_or_equal:now'],
+            'details'           => ['required', 'string', 'max:5000'],
+            'attachments'       => ['nullable', 'array', 'max:3'],
+            'attachments.*'     => ['file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:2048'],
+        ];
+
+        if ($user->isAdmin()) {
+            $rules['status'] = ['required', 'in:0,1,2,3,4'];
+        }
+
+        $validated = $request->validate($rules, [
+            'issue_date.before_or_equal' => 'Issue date and time cannot be in the future.',
+            'attachments.max'           => 'You can upload a maximum of 3 attachments.',
+            'attachments.*.max'         => 'Each attachment must be under 2MB.',
+            'attachments.*.mimes'       => 'Attachments must be a PDF or Image file (pdf, jpg, jpeg, png, webp).',
+        ]);
+
+        $issue->issue_category_id = $validated['issue_category_id'];
+        $issue->issue_date = $validated['issue_date'];
+        $issue->details = $validated['details'];
+
+        // Only Admin users can update the issue status
+        if ($user->isAdmin() && isset($validated['status'])) {
+            $issue->status = $validated['status'];
+        }
+
+        $issue->save();
+
+        if ($request->hasFile('attachments')) {
+            $existingCount = $issue->attachments()->count();
+            $newFiles = $request->file('attachments');
+
+            if ($existingCount + count($newFiles) > 3) {
+                return back()->withErrors(['attachments' => 'Total attachments for an issue cannot exceed 3 files. Please delete existing attachments if needed.']);
+            }
+
+            foreach ($newFiles as $file) {
+                if ($file && $file->isValid()) {
+                    $path = $file->store('attachments', 'public');
+                    $issue->attachments()->create([
+                        'file_path'     => $path,
+                        'original_name' => $file->getClientOriginalName(),
+                        'file_type'     => $file->getClientMimeType(),
+                        'file_size'     => $file->getSize(),
+                    ]);
+                }
+            }
+        }
+
+        return redirect()->route('issues.show', $issue->id)->with('success', 'Issue updated successfully!');
+    }
+
     public function destroy(int $id): RedirectResponse
     {
-        $issue = Auth::user()->issues()
-            ->with('attachments')
-            ->findOrFail($id);
+        $issue = $this->getAccessibleIssue($id);
 
         foreach ($issue->attachments as $attachment) {
             if (Storage::disk('public')->exists($attachment->file_path)) {
@@ -98,7 +180,7 @@ class IssueController extends Controller
 
     public function downloadAttachment(int $issueId, int $attachmentId): StreamedResponse
     {
-        $issue = Auth::user()->issues()->findOrFail($issueId);
+        $issue = $this->getAccessibleIssue($issueId);
         $attachment = $issue->attachments()->findOrFail($attachmentId);
 
         if (!Storage::disk('public')->exists($attachment->file_path)) {

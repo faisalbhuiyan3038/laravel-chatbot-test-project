@@ -129,6 +129,16 @@
             flex: 1;
         }
 
+        .alert-success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #15803d;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            margin-bottom: 20px;
+        }
+
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -175,7 +185,7 @@
 
         .meta-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
             background: #f8fafc;
@@ -265,6 +275,12 @@
             background: #fafafa;
         }
 
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
         .btn-back {
             text-decoration: none;
             color: var(--text-secondary);
@@ -274,6 +290,19 @@
             align-items: center;
             gap: 6px;
         }
+
+        .btn-edit {
+            background: #f1f5f9;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 600;
+            transition: background 0.15s;
+        }
+        .btn-edit:hover { background: #e2e8f0; }
 
         .btn-delete {
             background: #fee2e2;
@@ -298,7 +327,7 @@
         </div>
         <div class="nav-links">
             <a href="{{ route('chat.index') }}" class="nav-link">💬 Public Chat</a>
-            <a href="{{ route('issues.index') }}" class="nav-link active">📋 My Issues</a>
+            <a href="{{ route('issues.index') }}" class="nav-link active">📋 Issues</a>
             <a href="{{ route('admin.feedbacks') }}" class="nav-link">📊 Feedback Dashboard</a>
             @auth
                 <a href="{{ route('profile.show') }}" class="user-pill" title="View Profile">
@@ -314,6 +343,11 @@
     </header>
 
     <div class="container">
+
+        @if(session('success'))
+            <div class="alert-success">{{ session('success') }}</div>
+        @endif
+
         <div class="card">
             <div class="card-header">
                 <div class="issue-title">
@@ -327,6 +361,11 @@
             <div class="card-body">
                 <div class="meta-grid">
                     <div>
+                        <div class="meta-item-label">Submitted By</div>
+                        <div class="meta-item-value">{{ $issue->user->name ?? 'Unknown' }}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">{{ $issue->user->email ?? '' }}</div>
+                    </div>
+                    <div>
                         <div class="meta-item-label">Category</div>
                         <div class="meta-item-value">{{ $issue->category->name }}</div>
                     </div>
@@ -335,7 +374,7 @@
                         <div class="meta-item-value">{{ $issue->issue_date->format('M d, Y \a\t H:i') }}</div>
                     </div>
                     <div>
-                        <div class="meta-item-label">Submitted On</div>
+                        <div class="meta-item-label">Created On</div>
                         <div class="meta-item-value">{{ $issue->created_at->format('M d, Y H:i') }}</div>
                     </div>
                 </div>
@@ -362,10 +401,15 @@
             </div>
 
             <div class="card-footer">
-                <a href="{{ route('issues.index') }}" class="btn-back">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    Back to My Issues
-                </a>
+                <div class="footer-left">
+                    <a href="{{ route('issues.index') }}" class="btn-back">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                        Back to Issues List
+                    </a>
+                    <a href="{{ route('issues.edit', $issue->id) }}" class="btn-edit">
+                        Edit Issue
+                    </a>
+                </div>
 
                 <form action="{{ route('issues.destroy', $issue->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this issue?');">
                     @csrf

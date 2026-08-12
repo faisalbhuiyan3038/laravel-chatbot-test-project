@@ -55,7 +55,7 @@ class AuthTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_new_user_can_register(): void
+    public function test_new_user_can_register_and_defaults_to_user_role(): void
     {
         $response = $this->post('/register', [
             'name'                  => 'New User',
@@ -67,6 +67,7 @@ class AuthTest extends TestCase
         $response->assertRedirect(route('chat.index'));
         $this->assertDatabaseHas('users', [
             'email' => 'newuser@example.com',
+            'role'  => 'user',
         ]);
         $this->assertAuthenticated();
     }
