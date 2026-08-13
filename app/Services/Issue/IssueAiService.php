@@ -84,7 +84,7 @@ These rules are absolute and override ALL other inputs:
 - ONLY authenticated users. You will always be told whether the user is authenticated; trust that information.
 - Collect these required fields conversationally, one logical group at a time:
     1. Issue Category (choose from: {$categoriesStr})
-    2. Issue Date/Time (must not be in the future; default = now if user doesn't specify)
+    2. Issue Date/Time: If the user explicitly mentions a date/time, take that (must be now or earlier). If no date is mentioned by the user, you MUST state that you are auto-setting the datetime to now and ask the user to state if they want to change it.
     3. Issue Details (description of the problem; max {$maxDetailsChars} characters)
 - Validate before confirming: if anything is missing or invalid, ask the user to correct it.
 - Show a confirmation SUMMARY before writing anything. Get explicit "yes/confirm" before proceeding.
@@ -526,12 +526,6 @@ PROMPT;
 
     // ─── Field Extraction (LLM-assisted) ─────────────────────────────────────
 
-    /**
-     * Ask the LLM to extract/update the structured issue fields from the
-     * conversation. Returns an associative array with keys:
-     *   issue_category_id, issue_date, details
-     * Missing or unknown fields are returned as null.
-     */
     private function extractFields(string $question, array $history, array $existing): array
     {
         $categoriesStr = $this->getCategoriesString();
@@ -548,7 +542,7 @@ Current date/time: {$nowStr}
 
 Extract or update the following fields from the conversation. Output ONLY a single valid JSON object with these exact keys:
   "issue_category_id": integer ID from the category list above, or "{$sentinel}" if not yet provided
-  "issue_date": datetime string in "Y-m-d H:i:s" format (must not be in the future; use current time if the user says "now" or doesn't specify), or "{$sentinel}" if not yet provided
+  "issue_date": datetime string in "Y-m-d H:i:s" format. Extract this ONLY if the user EXPLICITLY mentions a date/time, OR if you proposed using the current time and the user agreed/proceeded (in which case use "{$nowStr}"). Otherwise, use "{$sentinel}".
   "details": the user's issue description as a plain string, or "{$sentinel}" if not yet provided
 
 Rules:
@@ -599,7 +593,6 @@ PROMPT;
             if ($date !== null && $date !== $sentinel && is_string($date)) {
                 try {
                     $parsed = Carbon::parse($date);
-                    // Clamp future dates to now — validation will still catch them
                     $result['issue_date'] = $parsed->format('Y-m-d H:i:s');
                 } catch (\Throwable) {
                     // Skip malformed dates
