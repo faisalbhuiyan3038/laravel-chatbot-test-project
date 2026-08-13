@@ -31,4 +31,32 @@ return [
             'translation_model' => env('GROQ_TRANSLATION_MODEL', 'llama-3.3-70b-versatile'),
         ]
     ],
-];
+
+    /*
+    |--------------------------------------------------------------------------
+    | AI-Driven Issue Actions
+    |--------------------------------------------------------------------------
+    |
+    | Controls the AI-assisted issue creation and retrieval capabilities that
+    | are layered on top of the existing RAG chatbot.
+    |
+    | enabled
+    |   Master switch. Set to false to disable all AI issue actions and fall
+    |   straight through to the existing RAG answerer for every message.
+    |
+    | creation_project_slug
+    |   The project slug (from the 'projects' table) for which issue creation
+    |   through the AI is permitted. Defaults to 'av-crm'. Change this only
+    |   if/when the issue system is extended to other projects.
+    |
+    | max_details_chars
+    |   Maximum character length for the 'details' field. Must match the
+    |   'max:N' rule in IssueController::store() and IssueAiService.
+    |
+    */
+    'issue_actions' => [
+        'enabled'               => env('AI_ISSUE_ACTIONS_ENABLED', true),
+        'creation_project_slug' => env('AI_ISSUE_CREATION_PROJECT_SLUG', 'av-crm'),
+        'max_details_chars'     => env('AI_ISSUE_MAX_DETAILS_CHARS', 5000),
+    ],
+];
