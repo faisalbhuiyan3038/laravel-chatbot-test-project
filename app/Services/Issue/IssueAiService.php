@@ -143,8 +143,9 @@ PROMPT;
 
         // ── SECURITY BOUNDARY 1: Authentication ──────────────────────────────
         if ($user === null) {
+            $loginUrl = route('login');
             $msg = "I'm sorry, but you need to be logged in to manage issues. "
-                 . "Please [log in](/login) and try again.";
+                 . "Please [log in]({$loginUrl}) and try again.";
             $onToken($msg);
             return $this->timingResult(0, microtime(true) - $generationStart);
         }
@@ -224,6 +225,7 @@ PROMPT;
                 'fields'          => $fields,
                 'pending_summary' => $summary,
             ]]);
+            session()->save();
 
             $confirmationMessage = $this->buildConfirmationPrompt($summary);
             $onToken($confirmationMessage);
@@ -237,6 +239,7 @@ PROMPT;
             'phase'   => 'collecting',
             'fields'  => $fields,
         ]]);
+        session()->save();
 
         // Step 4: Ask the LLM what to say next (collect missing / fix errors)
         $messages = $this->buildCollectionMessages($question, $history, $fields, $validationErrors);
@@ -269,6 +272,7 @@ PROMPT;
                 'phase'  => 'collecting',
                 'fields' => $fields,
             ]]);
+            session()->save();
 
             $summary = $session['pending_summary'] ?? '';
             $revisionMessage = "Of course, let's update the details. "
@@ -312,6 +316,7 @@ PROMPT;
         if ($validator->fails()) {
             $errors = implode(' ', $validator->errors()->all());
             session(['ai_issue_session.phase' => 'collecting']);
+            session()->save();
             $onToken("I noticed some issues with the data before creating the issue: {$errors} Please provide the corrected information.");
             return $this->timingResult(0, microtime(true) - $generationStart);
         }
@@ -330,6 +335,7 @@ PROMPT;
 
         // Clear session state
         session()->forget('ai_issue_session');
+        session()->save();
 
         $category = IssueCategory::find($issue->issue_category_id);
         $categoryName = $category?->name ?? 'Unknown';
@@ -361,6 +367,7 @@ PROMPT;
         // Clear any lingering creation session when user pivots to querying
         if ((session('ai_issue_session.intent') ?? '') === 'issue_create') {
             session()->forget('ai_issue_session');
+            session()->save();
         }
 
         // ── SECURITY BOUNDARY: fetch ONLY this user's issues ─────────────────
@@ -371,8 +378,9 @@ PROMPT;
             ->get();
 
         if ($issues->isEmpty()) {
+            $createUrl = route('issues.create');
             $onToken("You don't have any issues/tickets on record yet. "
-                . "You can create one by asking me to create an issue, or by visiting [/issues/create](/issues/create).");
+                . "You can create one by asking me to create an issue, or by visiting [Create Issue]({$createUrl}).");
             return $this->timingResult(0, microtime(true) - $generationStart);
         }
 

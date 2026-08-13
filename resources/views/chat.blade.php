@@ -914,6 +914,7 @@
     </div>
 
     <script>
+        const APP_BASE_URL = @json(url('/'));
         const CHAT_ASK_URL = @json(route('chat.ask'));
         const CHAT_FEEDBACK_URL = @json(route('chat.feedback'));
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -1316,6 +1317,21 @@
         function parseMarkdown(text) {
             if (!text) return '';
             let safe = escapeHtml(text);
+
+            // Markdown links: [label](url)
+            safe = safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
+                let cleanUrl = url.trim();
+                if (cleanUrl.startsWith('/') && !cleanUrl.startsWith('//')) {
+                    const baseUrl = (typeof APP_BASE_URL !== 'undefined' ? APP_BASE_URL : '').replace(/\/$/, '');
+                    if (!cleanUrl.startsWith(baseUrl)) {
+                        cleanUrl = baseUrl + cleanUrl;
+                    }
+                }
+                if (cleanUrl.startsWith('/') || cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+                    return `<a href="${cleanUrl}" target="_self" style="color: var(--wa-teal-dark); font-weight: 600; text-decoration: underline;">${label}</a>`;
+                }
+                return label;
+            });
 
             // Bold: **text** or __text__
             safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
