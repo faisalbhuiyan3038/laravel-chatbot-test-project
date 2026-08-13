@@ -23,11 +23,17 @@ class FaqChatController extends Controller
         IssueIntentDetector $intentDetector,
         IssueAiService      $issueService,
     ): StreamedResponse {
+        if (is_string($request->input('history'))) {
+            $request->merge(['history' => json_decode($request->input('history'), true)]);
+        }
+
         $validated = $request->validate([
             'question'          => ['required', 'string', 'max:1000'],
             'history'           => ['nullable', 'array'],
             'history.*.role'    => ['required', 'string', 'in:user,assistant'],
             'history.*.content' => ['required', 'string', 'max:4000'],
+            'attachments'       => ['nullable', 'array', 'max:3'],
+            'attachments.*'     => ['file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
         $question = trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $validated['question']));
@@ -51,31 +57,66 @@ class FaqChatController extends Controller
         // fall straight through to the existing RAG answerer.
         $issueActionsEnabled = config('ai.issue_actions.enabled', true);
 
-        // Detect intent — only run the classifier when the feature is on AND
-        // there is a plausible signal that the user is talking about issues.
-        // The classifier itself falls back to 'faq' on any error, so the RAG
-        // path is always the safe default.
+        // ── Active issue session bypass ───────────────────────────────────────
+        // If the user is already mid-flow in an issue creation session (e.g.
+        // uploading attachments, confirming, revising), skip the intent
+        // classifier entirely and route straight to IssueAiService.  This
+        // prevents follow-up messages like "yes", "skip", or "Attachments
+        // uploaded" from being misclassified as FAQ queries.
+        $activeIssueSession = session('ai_issue_session', []);
+        $activePhase = $activeIssueSession['phase'] ?? null;
+
         $intent = 'faq';
-        if ($issueActionsEnabled) {
+        if ($issueActionsEnabled && $activePhase !== null) {
+            // Mid-flow — honour the existing session intent
+            $intent = $activeIssueSession['intent'] ?? 'issue_create';
+        } elseif ($issueActionsEnabled) {
             $intent = $intentDetector->detect($question, $history);
         }
 
+        // ── Process Temporary Attachments ─────────────────────────────────────
+        $uploadedAttachments = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                if ($file && $file->isValid()) {
+                    // On some Windows/Laragon setups, $file->getRealPath() returns false due to temp folder permissions,
+                    // causing Laravel's store() to throw a ValueError in fopen().
+                    // We bypass this by reading the raw temp path directly.
+                    $hashName = $file->hashName();
+                    $tempPath = 'temp_attachments/' . $hashName;
+                    
+                    \Illuminate\Support\Facades\Storage::disk('local')->put(
+                        $tempPath,
+                        file_get_contents($file->getPathname())
+                    );
+                    
+                    $uploadedAttachments[] = [
+                        'path'          => $tempPath,
+                        'original_name' => $file->getClientOriginalName(),
+                        'mime'          => $file->getClientMimeType(),
+                        'size'          => $file->getSize(),
+                    ];
+                }
+            }
+        }
+
         return response()->stream(
-            function () use ($question, $history, $answerer, $issueService, $intent, $user) {
+            function () use ($question, $history, $answerer, $issueService, $intent, $user, $uploadedAttachments) {
                 $requestStart = microtime(true);
 
                 // ── Route to issue service or existing RAG answerer ───────────
                 if (in_array($intent, ['issue_create', 'issue_query'], true)) {
                     $result = $issueService->handleStream(
-                        intent:   $intent,
-                        question: $question,
-                        onToken:  function (string $token) {
+                        intent:      $intent,
+                        question:    $question,
+                        onToken:     function (string $token) {
                             echo 'data: ' . json_encode(['token' => $token]) . "\n\n";
                             if (ob_get_level() > 0) { ob_flush(); }
                             flush();
                         },
-                        history:  $history,
-                        user:     $user,   // may be null — IssueAiService handles the null case
+                        history:     $history,
+                        user:        $user,
+                        attachments: $uploadedAttachments,
                     );
                 } else {
                     // ── Existing RAG path — completely unchanged ───────────────

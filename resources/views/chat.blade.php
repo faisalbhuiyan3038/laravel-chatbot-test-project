@@ -162,6 +162,85 @@
             color: var(--wa-text-primary);
         }
 
+        /* Action Buttons & Modal */
+        .ai-action-btn {
+            display: inline-block;
+            margin: 6px 4px 0 0;
+            padding: 6px 12px;
+            background-color: var(--wa-teal-dark);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            text-decoration: none;
+        }
+        .ai-action-btn:hover {
+            opacity: 0.9;
+            color: white;
+        }
+        .ai-action-btn.skip-btn {
+            background-color: #64748b;
+        }
+
+        .upload-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-modal-overlay.open {
+            display: flex;
+        }
+        .upload-modal {
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .upload-modal h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--wa-text-primary);
+        }
+        .upload-modal p {
+            font-size: 13px;
+            color: var(--wa-text-secondary);
+            margin-bottom: 16px;
+        }
+        .upload-modal input[type="file"] {
+            display: block;
+            margin-bottom: 16px;
+            width: 100%;
+        }
+        .upload-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .upload-modal-actions button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .upload-modal-actions .btn-cancel {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .upload-modal-actions .btn-upload {
+            background: var(--wa-teal-dark);
+            color: #fff;
+        }
+
         /* Conversation List */
         .conv-list {
             flex: 1;
@@ -738,14 +817,48 @@
 
         /* Footer Input Bar */
         footer {
-            height: 62px;
             background: var(--wa-header-bg);
-            padding: 8px 16px;
+            padding: 8px 16px 6px 16px;
             display: flex;
-            align-items: center;
-            gap: 12px;
+            flex-direction: column;
+            gap: 4px;
             border-top: 1px solid var(--wa-border);
             z-index: 10;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .attach-btn {
+            background: none;
+            border: none;
+            color: var(--wa-text-secondary);
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .attach-btn:hover {
+            background: rgba(11, 20, 26, 0.05);
+            color: var(--wa-teal-dark);
+        }
+
+        .feedback-info {
+            font-size: 11px;
+            color: var(--wa-text-muted);
+            text-align: center;
+            width: 100%;
+            margin-top: 2px;
         }
 
         #chat-form {
@@ -903,14 +1016,30 @@
             </div>
 
             <footer>
-                <form id="chat-form">
-                    <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" required>
-                </form>
-                <button class="send-btn" id="send-btn" form="chat-form" type="submit" title="Send message">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                </button>
+                <div class="input-row">
+                    <form id="chat-form">
+                        <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" required>
+                    </form>
+                    <button class="send-btn" id="send-btn" form="chat-form" type="submit" title="Send message">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    </button>
+                </div>
+                <div class="feedback-info">AI can make mistakes. Always verify important information.</div>
             </footer>
         </main>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="upload-modal-overlay" id="upload-modal-overlay">
+        <div class="upload-modal">
+            <h3>Upload Attachments</h3>
+            <p>You can upload up to 3 files (PDF, JPG, PNG, WEBP). Max 2MB each.</p>
+            <input type="file" id="upload-modal-input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp">
+            <div class="upload-modal-actions">
+                <button class="btn-cancel" id="upload-modal-cancel">Cancel</button>
+                <button class="btn-upload" id="upload-modal-submit">Upload & Send</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1059,6 +1188,13 @@
         const statusDot = document.getElementById('status-dot');
         const storageStatusText = document.getElementById('storage-status-text');
         const persistReqBtn = document.getElementById('persist-req-btn');
+
+        // Modal elements
+        const uploadModalOverlay = document.getElementById('upload-modal-overlay');
+        const uploadModalInput = document.getElementById('upload-modal-input');
+        const uploadModalCancel = document.getElementById('upload-modal-cancel');
+        const uploadModalSubmit = document.getElementById('upload-modal-submit');
+        let pendingFiles = [];
 
         function generateUuid() {
             return 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -1317,6 +1453,10 @@
         function parseMarkdown(text) {
             if (!text) return '';
             let safe = escapeHtml(text);
+
+            // Action tags: [Action:Upload Attachment] and [Action:Skip]
+            safe = safe.replace(/\[Action:Upload Attachment\]/g, '<button type="button" class="ai-action-btn" data-action="upload-attachment">Upload Attachment</button>');
+            safe = safe.replace(/\[Action:Skip\]/g, '<button type="button" class="ai-action-btn skip-btn" data-action="skip-attachments">Skip</button>');
 
             // Markdown links: [label](url)
             safe = safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
@@ -1580,10 +1720,9 @@
             };
         }
 
-        // Chat Form Submission
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const question = chatInput.value.trim();
+        // Chat Form Submission Logic
+        async function processSubmission(customQuestion = null) {
+            const question = customQuestion !== null ? customQuestion.trim() : chatInput.value.trim();
             if (!question) return;
 
             if (!currentConversationId) {
@@ -1636,14 +1775,35 @@
             let answerText = '';
 
             try {
-                const response = await fetch(CHAT_ASK_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                    },
-                    body: JSON.stringify({ question, history }),
-                });
+                let requestOptions = {};
+                
+                if (pendingFiles && pendingFiles.length > 0) {
+                    const formData = new FormData();
+                    formData.append('question', question);
+                    formData.append('history', JSON.stringify(history));
+                    for (let i = 0; i < pendingFiles.length; i++) {
+                        formData.append('attachments[]', pendingFiles[i]);
+                    }
+                    requestOptions = {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: formData
+                    };
+                    pendingFiles = []; // Clear after sending
+                } else {
+                    requestOptions = {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({ question, history }),
+                    };
+                }
+
+                const response = await fetch(CHAT_ASK_URL, requestOptions);
 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -1652,41 +1812,60 @@
                 let buffer = '';
                 let finalMetadata = null;
 
+                const parseFrame = (frame) => {
+                    const lines = frame.split('\n');
+                    for (const rawLine of lines) {
+                        const line = rawLine.trim();
+                        if (line.startsWith('data:')) {
+                            const dataStr = line.slice(5).trim();
+                            if (!dataStr) continue;
+                            try {
+                                const payload = JSON.parse(dataStr);
+                                if (payload.token) {
+                                    if (!assistantRowRes) {
+                                        thinking.stop();
+                                        thinking.row.remove();
+                                        assistantRowRes = appendMessageRow('assistant', '', new Date().toISOString());
+                                    }
+                                    answerText += payload.token;
+                                    assistantRowRes.contentText.innerHTML = parseMarkdown(answerText);
+                                    scrollToBottom();
+                                }
+                                if (payload.done) {
+                                    if (!assistantRowRes) {
+                                        thinking.stop();
+                                        thinking.row.remove();
+                                        assistantRowRes = appendMessageRow('assistant', answerText || 'No response generated.', new Date().toISOString());
+                                    }
+                                    finalMetadata = payload;
+                                }
+                            } catch (e) {
+                                console.error('SSE JSON parse error:', e, dataStr);
+                            }
+                        }
+                    }
+                };
+
                 while (true) {
                     const { done, value } = await reader.read();
-                    if (done) break;
+                    if (value) {
+                        buffer += decoder.decode(value, { stream: true });
+                        // Normalize Windows CRLF line endings to LF so boundary search works reliably
+                        buffer = buffer.replace(/\r\n/g, '\n');
 
-                    buffer += decoder.decode(value, { stream: true });
-
-                    let boundary;
-                    while ((boundary = buffer.indexOf('\n\n')) !== -1) {
-                        const frame = buffer.slice(0, boundary);
-                        buffer = buffer.slice(boundary + 2);
-
-                        const line = frame.split('\n').find(l => l.startsWith('data:'));
-                        if (!line) continue;
-
-                        const payload = JSON.parse(line.slice(5).trim());
-
-                        if (payload.token) {
-                            if (!assistantRowRes) {
-                                thinking.stop();
-                                thinking.row.remove();
-                                assistantRowRes = appendMessageRow('assistant', '', new Date().toISOString());
-                            }
-                            answerText += payload.token;
-                            assistantRowRes.contentText.innerHTML = parseMarkdown(answerText);
-                            scrollToBottom();
+                        let boundary;
+                        while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+                            const frame = buffer.slice(0, boundary);
+                            buffer = buffer.slice(boundary + 2);
+                            parseFrame(frame);
                         }
-
-                        if (payload.done) {
-                            if (!assistantRowRes) {
-                                thinking.stop();
-                                thinking.row.remove();
-                                assistantRowRes = appendMessageRow('assistant', answerText || 'No response generated.', new Date().toISOString());
-                            }
-                            finalMetadata = payload;
+                    }
+                    if (done) {
+                        if (buffer.trim()) {
+                            parseFrame(buffer);
+                            buffer = '';
                         }
+                        break;
                     }
                 }
 
@@ -1713,6 +1892,11 @@
                 sendBtn.disabled = false;
                 chatInput.focus();
             }
+        }
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            processSubmission();
         });
 
         // Mobile Sidebar
@@ -1728,6 +1912,59 @@
         mobileMenuBtn.addEventListener('click', openMobileSidebar);
         sidebarOverlay.addEventListener('click', closeMobileSidebar);
         newChatBtn.addEventListener('click', createNewChat);
+
+        const attachBtn = document.getElementById('attach-btn');
+        if (attachBtn) {
+            attachBtn.addEventListener('click', () => {
+                uploadModalInput.value = '';
+                uploadModalOverlay.classList.add('open');
+            });
+        }
+
+        // Action Buttons Delegation
+        messagesInner.addEventListener('click', (e) => {
+            if (e.target.matches('.ai-action-btn')) {
+                const action = e.target.getAttribute('data-action');
+                if (action === 'skip-attachments') {
+                    processSubmission('Skip attachments');
+                } else if (action === 'upload-attachment') {
+                    uploadModalInput.value = '';
+                    uploadModalOverlay.classList.add('open');
+                }
+                // Optional: disable buttons after click to prevent duplicate
+                e.target.parentNode.querySelectorAll('.ai-action-btn').forEach(b => b.disabled = true);
+            }
+        });
+
+        // Modal Events
+        uploadModalCancel.addEventListener('click', () => {
+            uploadModalOverlay.classList.remove('open');
+            uploadModalInput.value = '';
+        });
+
+        uploadModalSubmit.addEventListener('click', (e) => {
+            e.preventDefault();
+            const files = uploadModalInput.files;
+            if (files.length > 3) {
+                alert('You can only upload up to 3 files.');
+                return;
+            }
+            if (files.length === 0) {
+                alert('Please select at least one file or click Cancel.');
+                return;
+            }
+            // Check sizes
+            for(let i=0; i<files.length; i++){
+                if(files[i].size > 2 * 1024 * 1024) {
+                    alert(`File ${files[i].name} exceeds 2MB limit.`);
+                    return;
+                }
+            }
+            
+            pendingFiles = Array.from(files);
+            uploadModalOverlay.classList.remove('open');
+            processSubmission('Attachments uploaded');
+        });
 
         // App Init
         async function initApp() {

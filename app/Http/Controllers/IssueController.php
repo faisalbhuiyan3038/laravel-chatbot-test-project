@@ -75,7 +75,16 @@ class IssueController extends Controller
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
                 if ($file && $file->isValid()) {
-                    $path = $file->store('attachments', 'public');
+                    // On Windows/Laragon, getRealPath() can return false due to temp folder permissions,
+                    // causing store() to throw ValueError. Bypass it by reading the raw temp path.
+                    $hashName = $file->hashName();
+                    $path = 'attachments/' . $hashName;
+                    
+                    \Illuminate\Support\Facades\Storage::disk('public')->put(
+                        $path,
+                        file_get_contents($file->getPathname())
+                    );
+                    
                     $issue->attachments()->create([
                         'file_path'     => $path,
                         'original_name' => $file->getClientOriginalName(),
@@ -149,7 +158,14 @@ class IssueController extends Controller
 
             foreach ($newFiles as $file) {
                 if ($file && $file->isValid()) {
-                    $path = $file->store('attachments', 'public');
+                    $hashName = $file->hashName();
+                    $path = 'attachments/' . $hashName;
+                    
+                    \Illuminate\Support\Facades\Storage::disk('public')->put(
+                        $path,
+                        file_get_contents($file->getPathname())
+                    );
+                    
                     $issue->attachments()->create([
                         'file_path'     => $path,
                         'original_name' => $file->getClientOriginalName(),

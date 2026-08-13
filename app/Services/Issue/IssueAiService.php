@@ -138,6 +138,7 @@ PROMPT;
         callable $onToken,
         array    $history,
         ?User    $user,
+        array    $attachments = [],
     ): array {
         $generationStart = microtime(true);
 
@@ -151,7 +152,7 @@ PROMPT;
         }
 
         if ($intent === 'issue_create') {
-            $result = $this->handleCreationStream($question, $onToken, $history, $user);
+            $result = $this->handleCreationStream($question, $onToken, $history, $user, $attachments);
         } else {
             $result = $this->handleQueryStream($question, $onToken, $history, $user);
         }
@@ -166,6 +167,7 @@ PROMPT;
         callable $onToken,
         array    $history,
         User     $user,
+        array    $attachments = [],
     ): array {
         $generationStart = microtime(true);
 
@@ -179,9 +181,27 @@ PROMPT;
         // Load or initialise session state
         $session = session('ai_issue_session', []);
 
+        $t = mb_strtolower(trim($question));
+        $isResetRequest = $t === 'cancel' 
+            || $t === 'start over' 
+            || $t === 'reset'
+            || preg_match('/\b(create|start|open)\s+(a\s+)?(new\s+)?(issue|ticket)\b/i', $t);
+
+        // If user explicitly asks to start a new issue or reset, clear existing session state
+        if ($isResetRequest && !empty($session)) {
+            session()->forget('ai_issue_session');
+            session()->save();
+            $session = [];
+        }
+
         // ── Phase: Confirming ─────────────────────────────────────────────────
         if (($session['phase'] ?? '') === 'confirming') {
             return $this->handleConfirmationPhase($question, $onToken, $session, $user, $generationStart);
+        }
+
+        // ── Phase: Collecting Attachments ─────────────────────────────────────
+        if (($session['phase'] ?? '') === 'collecting_attachments') {
+            return $this->handleAttachmentPhase($question, $onToken, $session, $user, $attachments, $generationStart);
         }
 
         // ── Phase: Collecting or new ──────────────────────────────────────────
@@ -216,19 +236,17 @@ PROMPT;
         $allPresent = $this->allRequiredFieldsPresent($fields);
 
         if ($allPresent && empty($validationErrors)) {
-            // Advance to confirmation
-            $summary = $this->buildHumanSummary($fields);
-
+            // Advance to collecting attachments
             session(['ai_issue_session' => [
                 'intent'          => 'issue_create',
-                'phase'           => 'confirming',
+                'phase'           => 'collecting_attachments',
                 'fields'          => $fields,
-                'pending_summary' => $summary,
             ]]);
             session()->save();
 
-            $confirmationMessage = $this->buildConfirmationPrompt($summary);
-            $onToken($confirmationMessage);
+            $msg = "Great! I have all the necessary details. Would you like to attach any files (e.g., screenshots or documents) to this issue? You can upload up to 3 files (PDF/Images, under 2MB each).\n\n"
+                 . "[Action:Upload Attachment] [Action:Skip]";
+            $onToken($msg);
 
             return $this->timingResult(0, microtime(true) - $generationStart);
         }
@@ -249,6 +267,57 @@ PROMPT;
     }
 
     /**
+     * Attachment phase: user can upload files or skip.
+     */
+    private function handleAttachmentPhase(
+        string   $question,
+        callable $onToken,
+        array    $session,
+        User     $user,
+        array    $attachments,
+        float    $generationStart,
+    ): array {
+        $fields = $session['fields'] ?? [];
+
+        $t = mb_strtolower(trim($question));
+        $isSkip = $t === 'skip attachments' 
+               || $t === 'skip'
+               || $t === 'no'
+               || $t === 'none'
+               || $t === 'no attachments'
+               || $t === 'no files'
+               || $t === 'n/a'
+               || str_contains($t, 'skip')
+               || str_contains($t, 'no attach')
+               || str_contains($t, 'no file')
+               || str_contains($t, 'don\'t have')
+               || $this->isPositiveConfirmation($question);
+
+        if (!empty($attachments) || $isSkip) {
+            $fields['attachments'] = $attachments;
+            
+            $summary = $this->buildHumanSummary($fields);
+
+            session(['ai_issue_session' => [
+                'intent'          => 'issue_create',
+                'phase'           => 'confirming',
+                'fields'          => $fields,
+                'pending_summary' => $summary,
+            ]]);
+            session()->save();
+
+            $confirmationMessage = $this->buildConfirmationPrompt($summary);
+            $onToken($confirmationMessage);
+
+            return $this->timingResult(0, microtime(true) - $generationStart);
+        }
+
+        // User typed something else but didn't provide attachments or didn't explicitly skip
+        $onToken("Please use the buttons below to either upload attachments or skip.\n\n[Action:Upload Attachment] [Action:Skip]");
+        return $this->timingResult(0, microtime(true) - $generationStart);
+    }
+
+    /**
      * Confirmation phase: the user has seen the summary and is responding.
      * If they confirm → create the issue. If they want to change something → go back.
      */
@@ -263,6 +332,31 @@ PROMPT;
 
         if ($this->isPositiveConfirmation($question)) {
             return $this->createIssue($fields, $onToken, $user, $generationStart);
+        }
+
+        // Check if the user specifically wants to change/add attachments
+        $tConfirm = mb_strtolower(trim($question));
+        $isAttachmentRevision = str_contains($tConfirm, 'attach')
+            || str_contains($tConfirm, 'upload')
+            || str_contains($tConfirm, 'file')
+            || str_contains($tConfirm, 'screenshot')
+            || str_contains($tConfirm, 'document');
+
+        if ($isAttachmentRevision) {
+            // Route back to attachment phase
+            $fields['attachments'] = []; // Clear any previous attachments
+            session(['ai_issue_session' => [
+                'intent' => 'issue_create',
+                'phase'  => 'collecting_attachments',
+                'fields' => $fields,
+            ]]);
+            session()->save();
+
+            $msg = "Sure! Please upload your attachments. You can upload up to 3 files (PDF/Images, under 2MB each).\n\n"
+                 . "[Action:Upload Attachment] [Action:Skip]";
+            $onToken($msg);
+
+            return $this->timingResult(0, microtime(true) - $generationStart);
         }
 
         if ($this->isNegativeOrRevision($question)) {
@@ -333,6 +427,23 @@ PROMPT;
             'status'            => Issue::STATUS_OPEN,
         ]);
 
+        $uploadedAttachments = $fields['attachments'] ?? [];
+        foreach ($uploadedAttachments as $tempAtt) {
+            $newPath = 'attachments/' . basename($tempAtt['path']);
+            if (\Illuminate\Support\Facades\Storage::disk('local')->exists($tempAtt['path'])) {
+                $fileContent = \Illuminate\Support\Facades\Storage::disk('local')->get($tempAtt['path']);
+                \Illuminate\Support\Facades\Storage::disk('public')->put($newPath, $fileContent);
+                \Illuminate\Support\Facades\Storage::disk('local')->delete($tempAtt['path']);
+
+                $issue->attachments()->create([
+                    'file_path'     => $newPath,
+                    'original_name' => $tempAtt['original_name'],
+                    'file_type'     => $tempAtt['mime'],
+                    'file_size'     => $tempAtt['size'],
+                ]);
+            }
+        }
+
         // Clear session state
         session()->forget('ai_issue_session');
         session()->save();
@@ -345,10 +456,9 @@ PROMPT;
             "✅ **Issue #{$issue->id} created successfully!**\n\n"
             . "- **Category:** {$categoryName}\n"
             . "- **Date:** " . Carbon::parse($issue->issue_date)->format('d M Y, H:i') . "\n"
+            . "- **Attachments:** " . count($uploadedAttachments) . " file(s)\n"
             . "- **Status:** Open\n\n"
             . "You can view your issue at: [{$issueUrl}]({$issueUrl})\n\n"
-            . "**Note:** If you need to attach files (PDF or images, up to 3 files, each under 2MB), "
-            . "please do so via the issue detail page linked above."
         );
 
         return $this->timingResult(0, microtime(true) - $generationStart);
@@ -599,9 +709,13 @@ PROMPT;
             : 'Unknown';
         $details  = $fields['details'] ?? 'Unknown';
 
+        $attCount = count($fields['attachments'] ?? []);
+        $attStr   = $attCount > 0 ? "{$attCount} file(s) attached" : 'None';
+
         return "- **Category:** {$catName}\n"
              . "- **Date/Time:** {$date}\n"
              . "- **Details:** {$details}\n"
+             . "- **Attachments:** {$attStr}\n"
              . "- **Status:** Open (set automatically)";
     }
 
