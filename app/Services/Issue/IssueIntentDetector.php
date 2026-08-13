@@ -18,21 +18,23 @@ use App\Services\AI\Contracts\ChatProvider;
 class IssueIntentDetector
 {
     /** @var string[] Valid intent tokens the LLM may return */
-    private const VALID_INTENTS = ['issue_create', 'issue_query', 'faq'];
+    private const VALID_INTENTS = ['issue_create', 'issue_query', 'issue_update', 'issue_delete', 'faq'];
 
     private const SYSTEM_PROMPT = <<<'PROMPT'
 You are an intent classification assistant for a customer support chatbot.
 
-Your task: read the conversation history and the user's latest message and classify the intent into ONE of these three categories:
+Your task: read the conversation history and the user's latest message and classify the intent into ONE of these five categories:
 
   issue_create — The user is ACTIVELY REQUESTING the assistant to create, open, submit, or report a new support issue/ticket NOW in this chat (e.g. "I want to create an issue", "Please open a ticket", "Create a ticket for me", "Report an issue with login", "Submit a ticket").
   issue_query  — The user is asking the assistant to look up, list, check status, or show details of THEIR OWN existing issues/tickets (e.g. "Show my tickets", "What is the status of my issue #3?", "List my open tickets", "Do I have any open tickets?").
+  issue_update — The user is asking to modify, edit, or change an existing ticket (e.g., "Change the category of issue #5", "Update my ticket details", "Add this attachment to issue #10").
+  issue_delete — The user is asking to cancel, remove, or delete an existing ticket (e.g., "Delete issue #12", "Cancel my ticket").
   faq          — Documentation questions, how-to questions, procedure/process questions, policy questions, general inquiries, or small talk (e.g. "How to log a new ticket in AV-CRM?", "How do I create an issue?", "What is the process to submit a ticket?", "Who is allowed to create a ticket?").
 
 CRITICAL RULES:
 1. HOW-TO / PROCEDURE QUESTIONS: Questions asking HOW to do something, what the steps or process are, or asking about documentation (e.g., "How to log a new ticket in AV-CRM?", "How do I submit an issue?", "What are the steps to open a ticket?") are ALWAYS `faq`.
-2. OPERATIONAL ACTION REQUESTS: Classify as `issue_create` ONLY when the user is explicitly asking to start or execute ticket creation right now in this chat session (e.g., "Log a ticket for me", "Create an issue", "I want to submit a ticket now").
-3. Output ONLY the exact category token (`issue_create`, `issue_query`, or `faq`). Nothing else. No punctuation, no quotes, no explanation.
+2. OPERATIONAL ACTION REQUESTS: Classify as `issue_create`, `issue_query`, `issue_update`, or `issue_delete` ONLY when the user is explicitly asking to start or execute ticket actions right now in this chat session.
+3. Output ONLY the exact category token (`issue_create`, `issue_query`, `issue_update`, `issue_delete`, or `faq`). Nothing else. No punctuation, no quotes, no explanation.
 PROMPT;
 
     public function __construct(

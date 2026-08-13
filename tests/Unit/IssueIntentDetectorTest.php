@@ -46,4 +46,30 @@ class IssueIntentDetectorTest extends TestCase
 
         $this->assertEquals('issue_query', $result);
     }
+
+    public function test_update_issue_classified_as_issue_update(): void
+    {
+        $mockChat = $this->createMock(ChatProvider::class);
+        $mockChat->expects($this->once())
+            ->method('completeMessages')
+            ->willReturn('issue_update');
+
+        $detector = new IssueIntentDetector($mockChat);
+        $result = $detector->detect('Update the category of issue #5');
+
+        $this->assertEquals('issue_update', $result);
+    }
+
+    public function test_delete_issue_classified_as_issue_delete(): void
+    {
+        $mockChat = $this->createMock(ChatProvider::class);
+        $mockChat->expects($this->once())
+            ->method('completeMessages')
+            ->willReturn('issue_delete');
+
+        $detector = new IssueIntentDetector($mockChat);
+        $result = $detector->detect('Delete my issue number 12');
+
+        $this->assertEquals('issue_delete', $result);
+    }
 }

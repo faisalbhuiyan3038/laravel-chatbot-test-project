@@ -105,7 +105,7 @@ class FaqChatController extends Controller
                 $requestStart = microtime(true);
 
                 // ── Route to issue service or existing RAG answerer ───────────
-                if (in_array($intent, ['issue_create', 'issue_query'], true)) {
+                if (in_array($intent, ['issue_create', 'issue_query', 'issue_update', 'issue_delete'], true)) {
                     $result = $issueService->handleStream(
                         intent:      $intent,
                         question:    $question,
