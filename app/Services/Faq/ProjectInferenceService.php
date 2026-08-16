@@ -148,7 +148,7 @@ Supported active projects: {$projectListStr}.
 
 Rules:
 - If the user is referring to one of the supported projects (even implicitly via context or synonyms), respond with ONLY the numeric ID of that project.
-- If the user explicitly mentions or asks about a project, software, or system that is NOT in the active projects list (e.g. AV-CRM, Jira, Salesforce, custom tools), respond with ONLY UNKNOWN.
+- If the user explicitly mentions or asks about a project, software, or system that is NOT in the active projects list (e.g. Jira, Salesforce, Slack, SAP, custom tools), respond with ONLY UNKNOWN.
 - If no project is mentioned or implied at all, respond with ONLY AMBIGUOUS.
 - Do not include any other text, quotes, or punctuation.
 PROMPT;

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --wa-bg: #eae6df;
@@ -522,39 +523,152 @@
         }
 
         .msg-container {
-            max-width: 75%;
+            max-width: 80%;
             display: flex;
             flex-direction: column;
         }
 
-        /* Bubble: natural padding, no bottom hack */
+        .msg-row.user .msg-container {
+            align-items: flex-end;
+        }
+
+        .msg-row.assistant .msg-container {
+            align-items: flex-start;
+        }
+
+        /* Bubble: natural padding, standard WhatsApp layout */
         .msg-bubble {
-            padding: 7px 12px 4px 12px;
+            padding: 7px 11px 6px 11px;
             font-size: 14.2px;
             line-height: 1.5;
             color: var(--wa-text-primary);
             box-shadow: 0 1px 2px rgba(11, 20, 26, 0.12);
             word-break: break-word;
             overflow-wrap: break-word;
-            white-space: pre-wrap;
         }
 
         /* User Bubble Styling (Right Side - Green) */
         .msg-row.user .msg-bubble {
             background: var(--wa-user-bubble);
             border-radius: 8px 0px 8px 8px;
+            white-space: pre-wrap;
+            width: fit-content;
+            max-width: 100%;
         }
 
         /* Assistant Bubble Styling (Left Side - White) */
         .msg-row.assistant .msg-bubble {
             background: var(--wa-assistant-bubble);
             border-radius: 0px 8px 8px 8px;
+            white-space: normal;
         }
 
         /* Bubble inner: text + time row in one flow */
         .bubble-text {
             display: inline;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .msg-row.user .bubble-text {
+            display: inline;
             white-space: pre-wrap;
+        }
+
+        .msg-row.assistant .bubble-text {
+            display: block;
+        }
+
+        .msg-row.assistant .bubble-text p {
+            margin: 0 0 6px 0;
+            line-height: 1.5;
+        }
+
+        .msg-row.assistant .bubble-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .msg-row.assistant .bubble-text ul,
+        .msg-row.assistant .bubble-text ol {
+            margin: 4px 0 6px 20px;
+            padding: 0;
+        }
+
+        .msg-row.assistant .bubble-text li {
+            margin-bottom: 3px;
+            line-height: 1.5;
+        }
+
+        .msg-row.assistant .bubble-text hr {
+            border: none;
+            border-top: 1px solid var(--wa-border);
+            margin: 8px 0;
+        }
+
+        .msg-row.assistant .bubble-text h1,
+        .msg-row.assistant .bubble-text h2,
+        .msg-row.assistant .bubble-text h3,
+        .msg-row.assistant .bubble-text h4,
+        .msg-row.assistant .bubble-text h5,
+        .msg-row.assistant .bubble-text h6 {
+            margin: 8px 0 4px 0;
+            font-size: 14.5px;
+            font-weight: 600;
+        }
+
+        .msg-row.assistant .bubble-text code {
+            background: rgba(0, 0, 0, 0.06);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+
+        .msg-row.assistant .bubble-text pre {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin: 6px 0;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+
+        .msg-row.assistant .bubble-text pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .msg-row.assistant .bubble-text blockquote {
+            border-left: 3px solid var(--wa-teal);
+            margin: 6px 0;
+            padding-left: 10px;
+            color: var(--wa-text-secondary);
+        }
+
+        .msg-row.assistant .bubble-text table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 6px 0;
+            font-size: 13px;
+        }
+
+        .msg-row.assistant .bubble-text th,
+        .msg-row.assistant .bubble-text td {
+            border: 1px solid var(--wa-border);
+            padding: 4px 8px;
+            text-align: left;
+        }
+
+        .msg-row.assistant .bubble-text th {
+            background: rgba(0, 0, 0, 0.04);
+            font-weight: 600;
+        }
+
+        .msg-row.assistant .bubble-text a {
+            color: var(--wa-teal-dark);
+            font-weight: 600;
+            text-decoration: underline;
         }
 
         /* Time & ticks sit inline after text using float trick — standard WhatsApp layout */
@@ -1412,7 +1526,7 @@
 
             const contentText = document.createElement('div');
             contentText.className = 'bubble-text';
-            contentText.innerHTML = `Hello! 👋 I am the <strong>AV-CRM AI Chatbot</strong>. I can help you resolve common issues quickly.<br><br>📌 <em>Note:</em> At the moment, I can only answer questions related to <strong>Ansar Recruitment</strong>, but I'm continuously learning and will be able to answer questions on other projects soon.`;
+            contentText.innerHTML = `Hello! 👋 I am the <strong>AV-CRM AI Chatbot</strong>. I can help you resolve common issues quickly.<br><br>📌 <em>Note:</em> At the moment, I can only answer questions related to <strong>Ansar Recruitment</strong> and <strong>AV-CRM</strong>, but I'm continuously learning and will be able to answer questions on other projects soon.`;
             bubble.appendChild(contentText);
 
             const clear = document.createElement('div');
@@ -1434,7 +1548,7 @@
                 </div>
                 <div class="suggestion-chips">
                     <div class="chip" onclick="fillInput('How to log a new ticket in AV-CRM?')">How to log a new ticket in AV-CRM?</div>
-                    <div class="chip" onclick="fillInput('Amar bill missing notification solution ki?')">Amar bill missing notification solution ki?</div>
+                    <div class="chip" onclick="fillInput('What is the status of the latest issue?')">What is the status of the latest issue?</div>
                     <div class="chip" onclick="fillInput('কোন ক্যাটাগরিতে কল রেজিস্টার করতে হবে?')">কোন ক্যাটাগরিতে কল রেজিস্টার করতে হবে?</div>
                 </div>
             `;
@@ -1450,40 +1564,69 @@
             chatInput.focus();
         };
 
-        function parseMarkdown(text) {
-            if (!text) return '';
-            let safe = escapeHtml(text);
+        // Configure marked options
+        if (typeof marked !== 'undefined') {
+            const renderer = new marked.Renderer();
+            renderer.link = function(hrefOrObj, title, text) {
+                let href = (typeof hrefOrObj === 'object' && hrefOrObj !== null) ? hrefOrObj.href : hrefOrObj;
+                let linkTitle = (typeof hrefOrObj === 'object' && hrefOrObj !== null) ? hrefOrObj.title : title;
+                let linkText = (typeof hrefOrObj === 'object' && hrefOrObj !== null) ? hrefOrObj.text : text;
 
-            // Action tags: [Action:Upload Attachment] and [Action:Skip]
-            safe = safe.replace(/\[Action:Upload Attachment\]/g, '<button type="button" class="ai-action-btn" data-action="upload-attachment">Upload Attachment</button>');
-            safe = safe.replace(/\[Action:Skip\]/g, '<button type="button" class="ai-action-btn skip-btn" data-action="skip-attachments">Skip</button>');
-
-            // Markdown links: [label](url)
-            safe = safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
-                let cleanUrl = url.trim();
+                let cleanUrl = (href || '').trim();
                 if (cleanUrl.startsWith('/') && !cleanUrl.startsWith('//')) {
                     const baseUrl = (typeof APP_BASE_URL !== 'undefined' ? APP_BASE_URL : '').replace(/\/$/, '');
                     if (!cleanUrl.startsWith(baseUrl)) {
                         cleanUrl = baseUrl + cleanUrl;
                     }
                 }
+                const titleAttr = linkTitle ? ` title="${escapeHtml(linkTitle)}"` : '';
                 if (cleanUrl.startsWith('/') || cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
-                    return `<a href="${cleanUrl}" target="_self" style="color: var(--wa-teal-dark); font-weight: 600; text-decoration: underline;">${label}</a>`;
+                    return `<a href="${cleanUrl}" target="_self" style="color: var(--wa-teal-dark); font-weight: 600; text-decoration: underline;"${titleAttr}>${linkText}</a>`;
                 }
-                return label;
+                return linkText;
+            };
+
+            marked.setOptions({
+                renderer: renderer,
+                gfm: true,
+                breaks: true,
             });
+        }
 
-            // Bold: **text** or __text__
-            safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            safe = safe.replace(/__(.*?)__/g, '<strong>$1</strong>');
+        function parseMarkdown(text) {
+            if (!text) return '';
 
-            // Bullet lists: * item or - item -> • item
-            safe = safe.replace(/^(\s*)[\*\-] (.*)$/gm, '$1• $2');
+            let html = '';
+            if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+                html = marked.parse(text);
+            } else {
+                let safe = escapeHtml(text);
+                safe = safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
+                    let cleanUrl = url.trim();
+                    if (cleanUrl.startsWith('/') && !cleanUrl.startsWith('//')) {
+                        const baseUrl = (typeof APP_BASE_URL !== 'undefined' ? APP_BASE_URL : '').replace(/\/$/, '');
+                        if (!cleanUrl.startsWith(baseUrl)) {
+                            cleanUrl = baseUrl + cleanUrl;
+                        }
+                    }
+                    if (cleanUrl.startsWith('/') || cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+                        return `<a href="${cleanUrl}" target="_self" style="color: var(--wa-teal-dark); font-weight: 600; text-decoration: underline;">${label}</a>`;
+                    }
+                    return label;
+                });
+                safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                safe = safe.replace(/__(.*?)__/g, '<strong>$1</strong>');
+                safe = safe.replace(/^(\s*)[\*\-] (.*)$/gm, '$1• $2');
+                safe = safe.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+                safe = safe.replace(/\n/g, '<br>');
+                html = safe;
+            }
 
-            // Inline code `code`
-            safe = safe.replace(/`([^`\n]+)`/g, '<code style="background: rgba(0,0,0,0.06); padding: 1px 4px; border-radius: 4px; font-family: monospace; font-size: 13px;">$1</code>');
+            // Action tags: [Action:Upload Attachment] and [Action:Skip]
+            html = html.replace(/\[Action:Upload Attachment\]/g, '<button type="button" class="ai-action-btn" data-action="upload-attachment">Upload Attachment</button>');
+            html = html.replace(/\[Action:Skip\]/g, '<button type="button" class="ai-action-btn skip-btn" data-action="skip-attachments">Skip</button>');
 
-            return safe;
+            return html;
         }
 
         // Message Row Generator
@@ -1518,7 +1661,11 @@
 
             const contentText = document.createElement('span');
             contentText.className = 'bubble-text';
-            contentText.innerHTML = parseMarkdown(text);
+            if (role === 'assistant') {
+                contentText.innerHTML = parseMarkdown(text);
+            } else {
+                contentText.textContent = text;
+            }
             bubble.appendChild(contentText);
 
             const clearfix = document.createElement('div');

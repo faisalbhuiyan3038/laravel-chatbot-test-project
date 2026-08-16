@@ -595,12 +595,28 @@ PROMPT;
             session()->save();
         }
 
-        // ── SECURITY BOUNDARY: fetch ONLY this user's issues ─────────────────
-        $issues = $user->issues()
-            ->with('category')
-            ->latest()
-            ->limit(20)
-            ->get();
+        // Fetch issues: admins can see all issues, regular users only see their own
+        if ($user->isAdmin()) {
+            $issueId = null;
+            if (preg_match('/(?:issue|ticket)\s*(?:#|no\.?|number\s+)?(\d+)/i', $question, $matches) || preg_match('/\b(\d+)\b/', $question, $matches)) {
+                $issueId = (int) $matches[1];
+            }
+
+            if ($issueId) {
+                $specificIssue = Issue::with(['user', 'category'])->find($issueId);
+                $issues = $specificIssue ? collect([$specificIssue]) : Issue::with(['user', 'category'])->latest()->limit(20)->get();
+            } else {
+                $issues = Issue::with(['user', 'category'])->latest()->limit(20)->get();
+            }
+            $scopeHeader = "The following are issues on record (viewed with Admin privileges by {$user->name}):";
+        } else {
+            $issues = $user->issues()
+                ->with('category')
+                ->latest()
+                ->limit(20)
+                ->get();
+            $scopeHeader = "The following are ALL of {$user->name}'s own issues (no other user's issues are included):";
+        }
 
         if ($issues->isEmpty()) {
             $createUrl = route('issues.create');
@@ -618,7 +634,7 @@ PROMPT;
 
         $userPrompt = <<<PROMPT
 <user_issues>
-The following are ALL of {$user->name}'s own issues (no other user's issues are included):
+{$scopeHeader}
 
 {$issueData}
 </user_issues>
@@ -637,6 +653,28 @@ PROMPT;
         $this->chat->completeMessagesStream($messages, $onToken);
 
         return $this->timingResult(0, microtime(true) - $generationStart);
+    }
+
+    /**
+     * Format issues collection for injection into the query-phase user prompt.
+     */
+    private function formatIssuesForContext($issues): string
+    {
+        if ($issues->isEmpty()) {
+            return 'No issues found.';
+        }
+
+        return $issues->map(function ($issue) {
+            $statusLabel  = Issue::STATUSES[$issue->status] ?? 'Unknown';
+            $categoryName = $issue->category?->name ?? 'Unknown';
+            $date         = Carbon::parse($issue->issue_date)->format('d M Y, H:i');
+            $creatorPart  = isset($issue->user) ? " | Creator: {$issue->user->name}" : '';
+            $excerpt      = mb_strlen($issue->details) > 150
+                ? mb_substr($issue->details, 0, 150) . '…'
+                : $issue->details;
+
+            return "Issue #{$issue->id}{$creatorPart} | Category: {$categoryName} | Date: {$date} | Status: {$statusLabel}\nDetails: {$excerpt}";
+        })->implode("\n\n");
     }
 
     // ─── Field Extraction (LLM-assisted) ─────────────────────────────────────
@@ -916,27 +954,6 @@ PROMPT;
             return 'No categories available';
         }
         return $categories->map(fn ($c) => "{$c->id}: {$c->name}")->implode(', ');
-    }
-
-    /**
-     * Format the user's issues for injection into the query-phase user prompt.
-     */
-    private function formatIssuesForContext($issues): string
-    {
-        if ($issues->isEmpty()) {
-            return 'No issues found.';
-        }
-
-        return $issues->map(function ($issue) {
-            $statusLabel = Issue::STATUSES[$issue->status] ?? 'Unknown';
-            $categoryName = $issue->category?->name ?? 'Unknown';
-            $date = Carbon::parse($issue->issue_date)->format('d M Y, H:i');
-            $excerpt = mb_strlen($issue->details) > 120
-                ? mb_substr($issue->details, 0, 120) . '…'
-                : $issue->details;
-
-            return "Issue #{$issue->id} | Category: {$categoryName} | Date: {$date} | Status: {$statusLabel}\nDetails: {$excerpt}";
-        })->implode("\n\n");
     }
 
     /**

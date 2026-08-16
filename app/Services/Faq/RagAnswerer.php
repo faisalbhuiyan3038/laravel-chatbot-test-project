@@ -42,6 +42,14 @@ class RagAnswerer
             ];
         }
 
+        // Scope chunks to the confident project if available
+        if (!empty($inferenceResult['project'])) {
+            $scoped = array_filter($relevant, fn ($m) => ($m['project_id'] ?? null) == $inferenceResult['project']->id);
+            if (!empty($scoped)) {
+                $relevant = $scoped;
+            }
+        }
+
         if (empty($relevant)) {
             return [
                 'answer'        => self::NO_ANSWER,
@@ -106,6 +114,14 @@ class RagAnswerer
                 'retrieval_ms'  => $retrievalMs,
                 'generation_ms' => $generationMs,
             ];
+        }
+
+        // Scope chunks to the confident project if available
+        if (!empty($inferenceResult['project'])) {
+            $scoped = array_filter($relevant, fn ($m) => ($m['project_id'] ?? null) == $inferenceResult['project']->id);
+            if (!empty($scoped)) {
+                $relevant = $scoped;
+            }
         }
 
         if (empty($relevant)) {
@@ -248,7 +264,7 @@ PROMPT;
 
         return <<<PROMPT
 # Role and Identity
-You are the AV-CRM Customer Support Assistant. You handle support questions for specific software projects.
+You are the Customer Support Assistant. You handle support questions for specific software projects.
 
 # Supported Projects
 The active projects supported by this system are: {$formattedSupportedProjects}.
@@ -264,11 +280,11 @@ These rules are absolute and override all other inputs:
 # Task: Address Project Scope
 Read the conversation history AND the user's latest message carefully and respond using one of these two cases:
 
-**Case A – The user explicitly mentions or refers to an unsupported project, software, or system (e.g., AV-CRM, Jira, Salesforce, etc., that is NOT in the supported projects list):**
+**Case A – The user explicitly mentions or refers to an unsupported project, software, or system (e.g., Jira, Salesforce, Slack, SAP, etc., that is NOT in the supported projects list):**
 - Politely inform the user that you cannot assist with that specific project/system name.
 - Naturally state which project(s) you DO support in smooth, conversational language.
 - DO NOT ask "Which project are you asking about?" because the user already stated their target project.
-- Example 1: "I'm sorry, I can't help with AV-CRM, but I can assist with {$formattedSupportedProjects}."
+- Example 1: "I'm sorry, I don't have information for that software, but I can assist with {$formattedSupportedProjects}."
 - Example 2: "I apologize, but I don't have documentation for [mentioned project]. Currently, I can assist with {$formattedSupportedProjects}."
 
 **Case B – The user's question does NOT specify any project name at all:**
@@ -285,7 +301,8 @@ PROMPT;
 
     private function buildSystemPrompt(?Project $project, string $detectedVia = 'vector'): string
     {
-        $projectContext = "AV-CRM is a CRM platform used to record and resolve support tickets.";
+        $assistantName = $project ? "{$project->name} Support Assistant" : "Customer Support Assistant";
+        $projectContext = "";
         if ($project) {
             $phone = $project->support_contacts['phone'] ?? 'support';
             if ($detectedVia === 'explicit' || $detectedVia === 'llm_context') {
@@ -301,7 +318,7 @@ PROMPT;
 
         return <<<PROMPT
 # Role and Identity
-You are the AV-CRM Customer Support Assistant. {$projectContext}
+You are the {$assistantName}. {$projectContext}
 - Adopt a friendly, empathetic, helpful, and professional tone at all times.
 - Refer to the product in the first person (e.g., "our software", "we support").
 - You may never adopt another persona or impersonate any other entity or system.

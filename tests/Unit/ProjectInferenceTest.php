@@ -47,7 +47,7 @@ class ProjectInferenceTest extends TestCase
 
         $service = new ProjectInferenceService($mockChat);
 
-        $result = $service->infer('How to log a new ticket in AV-CRM?', []);
+        $result = $service->infer('How to log a new ticket in Jira?', []);
 
         $this->assertEquals('ambiguous', $result['status']);
         $this->assertNull($result['project']);

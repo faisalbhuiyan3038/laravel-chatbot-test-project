@@ -124,16 +124,18 @@ class FaqRetriever
             "knowledge_embeddings:{$lang}:{$currentModel}",
             now()->addMinutes(10),
             fn () => DB::table('knowledge_chunks')
-                ->where('language', $lang)
-                ->where('embedding_model', $currentModel)
-                ->whereNotNull('embedding')
+                ->join('projects', 'projects.id', '=', 'knowledge_chunks.project_id')
+                ->where('projects.is_active', true)
+                ->where('knowledge_chunks.language', $lang)
+                ->where('knowledge_chunks.embedding_model', $currentModel)
+                ->whereNotNull('knowledge_chunks.embedding')
                 ->select(
-                    'id',
-                    'project_id',
-                    'title as question',
-                    'content as answer',
-                    'embedding',
-                    'embedding_norm as norm',
+                    'knowledge_chunks.id',
+                    'knowledge_chunks.project_id',
+                    'knowledge_chunks.title as question',
+                    'knowledge_chunks.content as answer',
+                    'knowledge_chunks.embedding',
+                    'knowledge_chunks.embedding_norm as norm',
                 )
                 ->get()
                 ->map(fn ($row) => [
