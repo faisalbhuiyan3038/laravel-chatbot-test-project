@@ -7,6 +7,7 @@ use App\Services\Issue\IssueAiService;
 use App\Services\Issue\IssueIntentDetector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -34,45 +35,58 @@ class FaqChatController extends Controller
             'history.*.content' => ['required', 'string', 'max:4000'],
             'attachments'       => ['nullable', 'array', 'max:3'],
             'attachments.*'     => ['file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:2048'],
+            'conversation_id'   => ['nullable', 'string', 'max:128'],
         ]);
 
         $question = trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $validated['question']));
 
         if ($question === '') {
-            // catches whitespace-only / control-character-only submissions that
-            // pass Laravel's basic 'required|string' check but are still junk
             abort(422, 'Please enter a question.');
         }
 
         $history = $validated['history'] ?? [];
 
-        // ── Resolve authenticated user at the HTTP layer ──────────────────────
-        // This value is passed into services explicitly — services never call
-        // Auth::user() themselves, so the auth context is always injected, not
-        // assumed, and easy to test.
-        $user = Auth::user();
+        $convId = preg_replace('/[^a-zA-Z0-9_\-]/', '', $validated['conversation_id'] ?? '');
+        $sessionKey = $convId !== '' ? "ai_issue_session_{$convId}" : 'ai_issue_session';
 
-        // ── Issue-actions feature flag ────────────────────────────────────────
-        // If AI issue actions are disabled globally, skip intent detection and
-        // fall straight through to the existing RAG answerer.
+        $user = Auth::user();
         $issueActionsEnabled = config('ai.issue_actions.enabled', true);
 
-        // ── Active issue session bypass ───────────────────────────────────────
-        // If the user is already mid-flow in an issue creation session (e.g.
-        // uploading attachments, confirming, revising), skip the intent
-        // classifier entirely and route straight to IssueAiService.  This
-        // prevents follow-up messages like "yes", "skip", or "Attachments
-        // uploaded" from being misclassified as FAQ queries.
-        $activeIssueSession = session('ai_issue_session', []);
+        $activeIssueSession = session($sessionKey, []);
         $activePhase = $activeIssueSession['phase'] ?? null;
+
+        $isCancellingFlow = false;
+        if ($activePhase !== null) {
+            $qt = mb_strtolower(trim($question));
+            $isCancellingFlow = (bool) preg_match(
+                '/\b(no|don\'t|dont|not?\s+create|not?\s+open|not?\s+submit|না|লাগবে\s*না|করতে\s*চাই\s*না|দরকার\s*নেই)\b/u',
+                $qt
+            ) && !preg_match('/\b(category|details|date|change|edit|update|modify|attach|file)\b/u', $qt);
+        }
+
+        if ($isCancellingFlow) {
+            session()->forget($sessionKey);
+            session()->save();
+            $activePhase = null;
+        }
 
         $intent = 'faq';
         if ($issueActionsEnabled && $activePhase !== null) {
-            // Mid-flow — honour the existing session intent
             $intent = $activeIssueSession['intent'] ?? 'issue_create';
         } elseif ($issueActionsEnabled) {
             $intent = $intentDetector->detect($question, $history);
         }
+
+        Log::info('[ChatFlow] Request received', [
+            'conversation_id' => $convId,
+            'session_key'     => $sessionKey,
+            'user_id'         => $user?->id,
+            'question'        => $question,
+            'history_count'   => count($history),
+            'active_phase'    => $activePhase,
+            'is_cancelling'   => $isCancellingFlow,
+            'final_intent'    => $intent,
+        ]);
 
         // ── Process Temporary Attachments ─────────────────────────────────────
         $uploadedAttachments = [];
@@ -101,7 +115,7 @@ class FaqChatController extends Controller
         }
 
         return response()->stream(
-            function () use ($question, $history, $answerer, $issueService, $intent, $user, $uploadedAttachments) {
+            function () use ($question, $history, $answerer, $issueService, $intent, $user, $uploadedAttachments, $sessionKey) {
                 $requestStart = microtime(true);
 
                 // ── Route to issue service or existing RAG answerer ───────────
@@ -117,6 +131,7 @@ class FaqChatController extends Controller
                         history:     $history,
                         user:        $user,
                         attachments: $uploadedAttachments,
+                        sessionKey:  $sessionKey,
                     );
                 } else {
                     // ── Existing RAG path — completely unchanged ───────────────
@@ -128,6 +143,15 @@ class FaqChatController extends Controller
                 }
 
                 $totalMs = round((microtime(true) - $requestStart) * 1000, 1);
+
+                Log::info('[ChatFlow] Response completed', [
+                    'intent'        => $intent,
+                    'grounded'      => $result['grounded'],
+                    'sources_count' => count($result['sources']),
+                    'retrieval_ms'  => $result['retrieval_ms'],
+                    'generation_ms' => $result['generation_ms'],
+                    'total_ms'      => $totalMs,
+                ]);
 
                 echo 'data: ' . json_encode([
                     'done'     => true,

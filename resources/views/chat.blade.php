@@ -1928,6 +1928,7 @@
                     const formData = new FormData();
                     formData.append('question', question);
                     formData.append('history', JSON.stringify(history));
+                    formData.append('conversation_id', currentConversationId || '');
                     for (let i = 0; i < pendingFiles.length; i++) {
                         formData.append('attachments[]', pendingFiles[i]);
                     }
@@ -1946,7 +1947,7 @@
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': csrfToken,
                         },
-                        body: JSON.stringify({ question, history }),
+                        body: JSON.stringify({ question, history, conversation_id: currentConversationId || '' }),
                     };
                 }
 

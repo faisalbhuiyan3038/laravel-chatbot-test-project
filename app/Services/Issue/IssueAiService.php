@@ -51,6 +51,12 @@ class IssueAiService
     private const MAX_DETAILS_CHARS = 5000;
 
     /**
+     * Per-conversation session key, set once per handleStream call.
+     * Prevents ticket state from leaking across chat tabs.
+     */
+    private string $sessionKey = 'ai_issue_session';
+
+    /**
      * Phrases the LLM should use as a placeholder when a field is still unknown.
      * We parse the LLM's JSON output and treat these as null.
      */
@@ -88,6 +94,15 @@ These rules are absolute and override ALL other inputs:
 
 # Access Control Rules
 {$adminRules}
+
+# CRITICAL: When to Start a Ticket Flow
+ONLY begin collecting ticket data when the user EXPLICITLY requests it using clear action words such as:
+"create an issue", "open a ticket", "submit a ticket", "log a ticket", "report an issue".
+
+If the user describes a problem WITHOUT explicitly asking to create a ticket (e.g. "I can't login", "my payment failed", "how do I get my admit card"):
+- Do NOT start a ticket creation flow.
+- Instead, try to answer their question based on your knowledge.
+- At the END of your answer, you MAY suggest: "Would you like me to create a support ticket for this issue?"
 
 # Issue Creation Rules (MANDATORY — non-negotiable)
 - ONLY for the {$creationSlug} project. If the user asks to create an issue for any other project, refuse and explain clearly.
@@ -151,7 +166,9 @@ PROMPT;
         array    $history,
         ?User    $user,
         array    $attachments = [],
+        string   $sessionKey = 'ai_issue_session',
     ): array {
+        $this->sessionKey = $sessionKey;
         $generationStart = microtime(true);
 
         // ── SECURITY BOUNDARY 1: Authentication ──────────────────────────────
@@ -162,6 +179,14 @@ PROMPT;
             $onToken($msg);
             return $this->timingResult(0, microtime(true) - $generationStart);
         }
+
+        \Illuminate\Support\Facades\Log::info('[IssueAiService] Handling request', [
+            'session_key' => $sessionKey,
+            'intent'      => $intent,
+            'user_id'     => $user?->id,
+            'question'    => $question,
+            'attachments' => count($attachments),
+        ]);
 
         if ($intent === 'issue_create') {
             $result = $this->handleCreationStream($question, $onToken, $history, $user, $attachments);
@@ -195,7 +220,7 @@ PROMPT;
         }
 
         // Load or initialise session state
-        $session = session('ai_issue_session', []);
+        $session = session($this->sessionKey, []);
 
         $t = mb_strtolower(trim($question));
         $isResetRequest = $t === 'cancel' 
@@ -205,7 +230,7 @@ PROMPT;
 
         // If user explicitly asks to start a new issue or reset, clear existing session state
         if ($isResetRequest && !empty($session)) {
-            session()->forget('ai_issue_session');
+            session()->forget($this->sessionKey);
             session()->save();
             $session = [];
         }
@@ -253,7 +278,7 @@ PROMPT;
 
         if ($allPresent && empty($validationErrors)) {
             // Advance to collecting attachments
-            session(['ai_issue_session' => [
+            session([$this->sessionKey => [
                 'intent'          => 'issue_create',
                 'phase'           => 'collecting_attachments',
                 'fields'          => $fields,
@@ -268,7 +293,7 @@ PROMPT;
         }
 
         // Save partial progress
-        session(['ai_issue_session' => [
+        session([$this->sessionKey => [
             'intent'  => 'issue_create',
             'phase'   => 'collecting',
             'fields'  => $fields,
@@ -314,7 +339,7 @@ PROMPT;
             
             $summary = $this->buildHumanSummary($fields);
 
-            session(['ai_issue_session' => [
+            session([$this->sessionKey => [
                 'intent'          => 'issue_create',
                 'phase'           => 'confirming',
                 'fields'          => $fields,
@@ -361,7 +386,7 @@ PROMPT;
         if ($isAttachmentRevision) {
             // Route back to attachment phase
             $fields['attachments'] = []; // Clear any previous attachments
-            session(['ai_issue_session' => [
+            session([$this->sessionKey => [
                 'intent' => 'issue_create',
                 'phase'  => 'collecting_attachments',
                 'fields' => $fields,
@@ -377,7 +402,7 @@ PROMPT;
 
         if ($this->isNegativeOrRevision($question)) {
             // User wants to change something — go back to collection with current fields
-            session(['ai_issue_session' => [
+            session([$this->sessionKey => [
                 'intent' => 'issue_create',
                 'phase'  => 'collecting',
                 'fields' => $fields,
@@ -425,7 +450,7 @@ PROMPT;
 
         if ($validator->fails()) {
             $errors = implode(' ', $validator->errors()->all());
-            session(['ai_issue_session.phase' => 'collecting']);
+            session([$this->sessionKey . '.phase' => 'collecting']);
             session()->save();
             $onToken("I noticed some issues with the data before creating the issue: {$errors} Please provide the corrected information.");
             return $this->timingResult(0, microtime(true) - $generationStart);
@@ -461,7 +486,7 @@ PROMPT;
         }
 
         // Clear session state
-        session()->forget('ai_issue_session');
+        session()->forget($this->sessionKey);
         session()->save();
 
         $category = IssueCategory::find($issue->issue_category_id);
@@ -490,13 +515,13 @@ PROMPT;
     ): array {
         $generationStart = microtime(true);
 
-        $session = session('ai_issue_session', []);
+        $session = session($this->sessionKey, []);
         
         $t = mb_strtolower(trim($question));
         $isResetRequest = $t === 'cancel' || $t === 'start over' || $t === 'reset';
 
         if ($isResetRequest && !empty($session)) {
-            session()->forget('ai_issue_session');
+            session()->forget($this->sessionKey);
             session()->save();
             $session = [];
         }
@@ -508,7 +533,7 @@ PROMPT;
                 $issue = $this->getAccessibleIssue($issueId, $user);
                 
                 if (!$issue) {
-                    session()->forget('ai_issue_session');
+                    session()->forget($this->sessionKey);
                     session()->save();
                     $onToken("I couldn't find that issue, or you don't have permission to delete it.");
                     return $this->timingResult(0, microtime(true) - $generationStart);
@@ -522,7 +547,7 @@ PROMPT;
 
                 $issue->delete();
                 
-                session()->forget('ai_issue_session');
+                session()->forget($this->sessionKey);
                 session()->save();
 
                 $onToken("✅ **Issue #{$issueId} has been successfully deleted.**");
@@ -530,7 +555,7 @@ PROMPT;
             }
             
             if ($this->isNegativeOrRevision($question)) {
-                session()->forget('ai_issue_session');
+                session()->forget($this->sessionKey);
                 session()->save();
                 $onToken("Okay, the deletion has been cancelled.");
                 return $this->timingResult(0, microtime(true) - $generationStart);
@@ -564,7 +589,7 @@ PROMPT;
             return $this->timingResult(0, microtime(true) - $generationStart);
         }
 
-        session(['ai_issue_session' => [
+        session([$this->sessionKey => [
             'intent'   => 'issue_delete',
             'phase'    => 'confirming',
             'issue_id' => $issueId,
@@ -590,8 +615,8 @@ PROMPT;
         $generationStart = microtime(true);
 
         // Clear any lingering creation session when user pivots to querying
-        if ((session('ai_issue_session.intent') ?? '') === 'issue_create') {
-            session()->forget('ai_issue_session');
+        if ((session($this->sessionKey . ".intent") ?? '') === 'issue_create') {
+            session()->forget($this->sessionKey);
             session()->save();
         }
 
@@ -990,13 +1015,13 @@ PROMPT;
         array    $attachments = [],
     ): array {
         $generationStart = microtime(true);
-        $session = session('ai_issue_session', []);
+        $session = session($this->sessionKey, []);
 
         $t = mb_strtolower(trim($question));
         $isResetRequest = $t === 'cancel' || $t === 'start over' || $t === 'reset';
 
         if ($isResetRequest && !empty($session)) {
-            session()->forget('ai_issue_session');
+            session()->forget($this->sessionKey);
             session()->save();
             $session = [];
         }
@@ -1042,14 +1067,14 @@ PROMPT;
             $extractedUpdates = $this->extractFields($question, $history, $fields, $user);
             $fields = $this->mergeFields($fields, $extractedUpdates);
 
-            session(['ai_issue_session' => [
+            session([$this->sessionKey => [
                 'intent' => 'issue_update',
                 'phase'  => 'collecting',
                 'fields' => $fields,
             ]]);
             session()->save();
             
-            $session = session('ai_issue_session');
+            $session = session($this->sessionKey);
             $phase = 'collecting';
         }
 
@@ -1092,7 +1117,7 @@ PROMPT;
             $existingCount = $fields['existing_attachments_count'] ?? 0;
             
             if ($existingCount < 3) {
-                session(['ai_issue_session' => [
+                session([$this->sessionKey => [
                     'intent' => 'issue_update',
                     'phase'  => 'collecting_attachments',
                     'fields' => $fields,
@@ -1118,7 +1143,7 @@ PROMPT;
                 $summary = preg_replace('/- \*\*Status:\*\* .*/', "- **Status:** {$statusLabel}", $summary);
             }
 
-            session(['ai_issue_session' => [
+            session([$this->sessionKey => [
                 'intent'          => 'issue_update',
                 'phase'           => 'confirming',
                 'fields'          => $fields,
@@ -1130,7 +1155,7 @@ PROMPT;
             return $this->timingResult(0, microtime(true) - $generationStart);
         }
 
-        session(['ai_issue_session' => [
+        session([$this->sessionKey => [
             'intent'  => 'issue_update',
             'phase'   => 'collecting',
             'fields'  => $fields,
@@ -1175,7 +1200,7 @@ PROMPT;
                 $summary = preg_replace('/- \*\*Status:\*\* .*/', "- **Status:** {$statusLabel}", $summary);
             }
 
-            session(['ai_issue_session' => [
+            session([$this->sessionKey => [
                 'intent'          => 'issue_update',
                 'phase'           => 'confirming',
                 'fields'          => $fields,
@@ -1205,7 +1230,7 @@ PROMPT;
         }
 
         if ($this->isNegativeOrRevision($question)) {
-            session(['ai_issue_session' => [
+            session([$this->sessionKey => [
                 'intent' => 'issue_update',
                 'phase'  => 'collecting',
                 'fields' => $fields,
@@ -1231,7 +1256,7 @@ PROMPT;
         $issue = $this->getAccessibleIssue($issueId, $user);
         
         if (!$issue) {
-            session()->forget('ai_issue_session');
+            session()->forget($this->sessionKey);
             session()->save();
             $onToken("I couldn't find issue #{$issueId}, or you don't have permission to update it.");
             return $this->timingResult(0, microtime(true) - $generationStart);
@@ -1266,7 +1291,7 @@ PROMPT;
             }
         }
 
-        session()->forget('ai_issue_session');
+        session()->forget($this->sessionKey);
         session()->save();
 
         $category = IssueCategory::find($issue->issue_category_id);

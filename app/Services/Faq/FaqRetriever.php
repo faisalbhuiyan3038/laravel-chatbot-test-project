@@ -35,9 +35,19 @@ class FaqRetriever
         $currentModel = config('ai.providers.' . config('ai.embedding_provider') . '.embedding_model');
         $lang = $this->languageDetector->detect($question);
 
+        \Illuminate\Support\Facades\Log::info('[FaqRetriever] Language detection', [
+            'question' => $question,
+            'detected_language' => $lang,
+        ]);
+
         // --- Banglish Handling: Dual Multi-Vector Search ---
         if ($lang === 'banglish') {
             $transliterated = $this->banglishNormalizer->transliterate($question);
+
+            \Illuminate\Support\Facades\Log::info('[FaqRetriever] Banglish transliteration', [
+                'original' => $question,
+                'transliterated' => $transliterated,
+            ]);
 
             // 1. Vector search transliterated Bangla text against Bangla FAQs
             $bnVector = $this->embedder->embed($transliterated);
@@ -58,7 +68,15 @@ class FaqRetriever
                 }
             }
 
-            return $this->rank(array_values($merged), $topK);
+            $ranked = $this->rank(array_values($merged), $topK);
+
+            \Illuminate\Support\Facades\Log::info('[FaqRetriever] Banglish search results', [
+                'bn_matches' => count($bnMatches),
+                'en_matches' => count($enMatches),
+                'top_score'  => $ranked[0]['score'] ?? null,
+            ]);
+
+            return $ranked;
         }
 
         // --- Standard Bangla or English Search ---

@@ -85,8 +85,6 @@ class RagAnswerer
     
     public function answerStream(string $question, callable $onToken, array $history = []): array
     {
-        // Reformulate the question into a self-contained query when history exists.
-        // This fixes cases like "yes i am talking about that" which lose the original question.
         $searchQuery = !empty($history) ? $this->reformulateQuery($question, $history) : $question;
 
         $retrievalStart = microtime(true);
@@ -94,8 +92,18 @@ class RagAnswerer
         $retrievalMs = round((microtime(true) - $retrievalStart) * 1000, 1);
     
         $relevant = array_filter($matches, fn ($m) => $m['score'] >= $this->similarityThreshold);
-        // Infer project using reformulated query for better context, but pass history too
         $inferenceResult = $this->inference->infer($searchQuery, $relevant, $history);
+
+        \Illuminate\Support\Facades\Log::info('[RagAnswerer] Search & Inference', [
+            'raw_question'      => $question,
+            'search_query'      => $searchQuery,
+            'total_matches'     => count($matches),
+            'relevant_matches'  => count($relevant),
+            'top_score'         => $matches[0]['score'] ?? null,
+            'inference_status'  => $inferenceResult['status'] ?? null,
+            'inferred_project'  => $inferenceResult['project']?->name ?? null,
+            'detected_via'      => $inferenceResult['detected_via'] ?? null,
+        ]);
 
         if ($inferenceResult['status'] === 'ambiguous') {
             $generationStart = microtime(true);
