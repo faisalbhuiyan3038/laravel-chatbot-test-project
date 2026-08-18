@@ -8,8 +8,9 @@ Provides an infrastructure-agnostic abstraction for generative LLM interactions 
   - `App\Services\AI\Contracts\EmbeddingProvider` (bound in `AiServiceProvider`)
   - `App\Services\AI\Contracts\ChatProvider` (bound in `AiServiceProvider`)
   - `'ai.translator'` string binding (bound in `AiServiceProvider` for dedicated translation models)
+  - `'ai.intent_detector'` string binding and `App\Services\Issue\IssueIntentDetector` (bound in `AiServiceProvider` for dedicated intent classification)
 - **Console Command**:
-  - `php artisan ai:test` -> `App\Console\Commands\TestAiProviders` (Smoke tests current embedding and completion configs)
+  - `php artisan ai:test` -> `App\Console\Commands\TestAiProviders` (Smoke tests current embedding, completion, and intent detection configs)
 
 ## Key Files & Classes
 - `config/ai.php` — Central configuration declaring active drivers, endpoint URLs, API keys, model names, context message window sizes, and issue action toggles.
@@ -93,11 +94,11 @@ This layer does not directly interact with database tables. However, vector dime
 
 ## Configuration Matrix
 
-| Provider Key | Default Base URL | Default Embedding Model | Default Chat Model | Notes |
-|---|---|---|---|---|
-| `ollama` | `http://localhost:11434/v1` | `bge-m3` (1024 dims) | `qwen3:4b` | Self-hosted local inference |
-| `gemini` | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-embedding-001` | `gemini-2.5-flash-lite` | Google OpenAI-compat endpoint |
-| `groq` | `https://api.groq.com/openai/v1` | `null` | `llama-3.3-70b-versatile` | Ultra-low latency chat (embeddings unsupported) |
+| Provider Key | Default Base URL | Default Embedding Model | Default Chat Model | Default Intent Model | Notes |
+|---|---|---|---|---|---|
+| `ollama` | `http://localhost:11434/v1` | `bge-m3` (1024 dims) | `qwen3:4b` | `qwen3:4b` | Self-hosted local inference |
+| `gemini` | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-embedding-001` | `gemini-2.5-flash-lite` | `gemini-2.5-flash-lite` | Google OpenAI-compat endpoint |
+| `groq` | `https://api.groq.com/openai/v1` | `null` | `llama-3.3-70b-versatile` | `llama-3.3-70b-versatile` | Ultra-low latency chat (embeddings unsupported) |
 
 ## Edge Cases & Conditional Logic
 - **SSE Frame Fragmentation**: Network packet fragmentation may cause partial SSE lines. `OpenAiCompatibleChatProvider` buffers incoming bytes and only consumes frames delimited by `\n\n`, preserving leftover bytes in the buffer.

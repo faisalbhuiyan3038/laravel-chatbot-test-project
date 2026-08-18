@@ -4,6 +4,7 @@ return [
     'embedding_provider' => env('AI_EMBEDDING_PROVIDER', 'ollama'),
     'chat_provider' => env('AI_CHAT_PROVIDER', 'ollama'),
     'translation_provider' => env('AI_TRANSLATION_PROVIDER', 'ollama'),
+    'intent_provider' => env('AI_INTENT_PROVIDER', 'ollama'),
     'max_context_messages' => env('AI_MAX_CONTEXT_MESSAGES', 10),
     'enable_llm_banglish_translation' => env('AI_ENABLE_LLM_BANGLISH_TRANSLATION', true),
 
@@ -14,6 +15,7 @@ return [
             'embedding_model' => env('OLLAMA_EMBEDDING_MODEL', 'bge-m3'),
             'chat_model' => env('OLLAMA_CHAT_MODEL', 'qwen3:4b'),
             'translation_model' => env('OLLAMA_TRANSLATION_MODEL', 'qwen3:4b'),
+            'intent_model' => env('OLLAMA_INTENT_MODEL', 'qwen3:4b'),
         ],
 
         'gemini' => [
@@ -22,6 +24,7 @@ return [
             'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-001'),
             'chat_model' => env('GEMINI_CHAT_MODEL', 'gemini-2.5-flash-lite'),
             'translation_model' => env('GEMINI_TRANSLATION_MODEL', 'gemini-2.5-flash-lite'),
+            'intent_model' => env('GEMINI_INTENT_MODEL', 'gemini-2.5-flash-lite'),
         ],
         'groq' => [
             'base_url' => env('GROQ_BASE_URL', 'https://api.groq.com/openai/v1'),
@@ -29,6 +32,7 @@ return [
             'embedding_model' => null,
             'chat_model' => env('GROQ_CHAT_MODEL', 'llama-3.3-70b-versatile'),
             'translation_model' => env('GROQ_TRANSLATION_MODEL', 'llama-3.3-70b-versatile'),
+            'intent_model' => env('GROQ_INTENT_MODEL', 'llama-3.3-70b-versatile'),
         ]
     ],
 

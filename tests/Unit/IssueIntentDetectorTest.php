@@ -72,4 +72,19 @@ class IssueIntentDetectorTest extends TestCase
 
         $this->assertEquals('issue_delete', $result);
     }
+
+    public function test_container_resolves_issue_intent_detector_with_configured_intent_provider(): void
+    {
+        config([
+            'ai.chat_provider' => 'ollama',
+            'ai.intent_provider' => 'gemini',
+            'ai.providers.gemini.intent_model' => 'gemini-custom-intent',
+        ]);
+
+        $detector = app(IssueIntentDetector::class);
+        $this->assertInstanceOf(IssueIntentDetector::class, $detector);
+
+        $intentProvider = app('ai.intent_detector');
+        $this->assertInstanceOf(\App\Services\AI\Providers\OpenAiCompatibleChatProvider::class, $intentProvider);
+    }
 }

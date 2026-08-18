@@ -6,6 +6,7 @@ use App\Services\AI\Contracts\ChatProvider;
 use App\Services\AI\Contracts\EmbeddingProvider;
 use App\Services\AI\Providers\OpenAiCompatibleChatProvider;
 use App\Services\AI\Providers\OpenAiCompatibleEmbeddingProvider;
+use App\Services\Issue\IssueIntentDetector;
 use Illuminate\Support\ServiceProvider;
 
 class AiServiceProvider extends ServiceProvider
@@ -39,6 +40,23 @@ class AiServiceProvider extends ServiceProvider
                 baseUrl: $cfg['base_url'],
                 apiKey: $cfg['api_key'],
                 model: $cfg['translation_model'],
+            );
+        });
+
+        $this->app->bind('ai.intent_detector', function(){
+            $provider = config('ai.intent_provider', config('ai.chat_provider'));
+            $cfg = config('ai.providers.' . $provider);
+
+            return new OpenAiCompatibleChatProvider(
+                baseUrl: $cfg['base_url'],
+                apiKey: $cfg['api_key'],
+                model: $cfg['intent_model'] ?? $cfg['chat_model'],
+            );
+        });
+
+        $this->app->bind(IssueIntentDetector::class, function ($app) {
+            return new IssueIntentDetector(
+                chat: $app->make('ai.intent_detector')
             );
         });
     }

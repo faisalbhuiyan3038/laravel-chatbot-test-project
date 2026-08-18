@@ -29,6 +29,7 @@ class TestAiProviders extends Command
     {
         $this->info('Embedding provider: ' . config('ai.embedding_provider'));
         $this->info('Chat provider: ' . config('ai.chat_provider'));
+        $this->info('Intent provider: ' . config('ai.intent_provider'));
 
         $this->line('--- Testing embedding ---');
         $vector = $embedder->embed('How do I close a support ticket?');
@@ -40,6 +41,12 @@ class TestAiProviders extends Command
             'In one short sentence, what does this system do?'
         );
         $this->info('Reply: '.$reply);
+
+        $this->line('--- Testing intent detector ---');
+        /** @var \App\Services\Issue\IssueIntentDetector $intentDetector */
+        $intentDetector = app(\App\Services\Issue\IssueIntentDetector::class);
+        $intent = $intentDetector->detect('I want to create a new support ticket');
+        $this->info('Detected intent: '.$intent);
 
         return self::SUCCESS;
     }
